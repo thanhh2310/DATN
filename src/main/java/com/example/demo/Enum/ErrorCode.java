@@ -6,6 +6,8 @@ import lombok.Getter;
 public enum ErrorCode {
     USER_NOT_FOUND(101, "User not found"),
     USER_AlREADY_EXISTED(102,"User have already existed" ),
+    USER_IS_DELETED(103, "User is deleted" ),
+    USER_AlREADY_ACTIVE(104, "User have already active" ),
     ROLE_ALREADY_EXISTED(201,"Role have already existed" ),
     ROLE_NOT_FOUND(202, " Role not found" ),
     INVALID_OTP_CODE(9999,"Invalid otp code" ),

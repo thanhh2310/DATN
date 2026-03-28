@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -27,13 +28,21 @@ public class RedisService {
         return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + token));
     }
 
-    public void saveRefreshTokenToRedis(String token, long expirationTimeInSeconds){
-        redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + token,
+    public void saveRefreshTokenToRedis(String email, String token, long expirationTimeInSeconds){
+        redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + email + ":" + token,
                 "active", expirationTimeInSeconds,
                 TimeUnit.SECONDS);
     }
 
-    public void deleteRefreshToken(String token) {
-        redisTemplate.delete(REFRESH_TOKEN_PREFIX + token);
+    public void deleteRefreshToken(String email, String token) {
+        redisTemplate.delete(REFRESH_TOKEN_PREFIX + email + ":" + token);
+    }
+
+    public void deleteAllRefreshTokensOfUser(String email) {
+        // Tìm tất cả các key có chứa email của user này
+        Set<String> keys = redisTemplate.keys(REFRESH_TOKEN_PREFIX + email + ":*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
     }
 }

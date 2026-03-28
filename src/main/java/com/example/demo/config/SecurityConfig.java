@@ -27,18 +27,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtils jwtUtils,
-                                                           UserService userService,
-                                                           RedisService redisService){
-        return new JwtAuthenticationFilter(jwtUtils, userService, redisService);
-    }
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
@@ -51,18 +46,17 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .sessionManagement(sess-> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
-                .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/auth/**",
-                                        "/login/oauth2/**","/error",
-                                        "/categories/**",
-                                        "/attributes/**",
-                                        "/brands/**").permitAll()
-                                .requestMatchers("/users/**").hasAnyRole("USER","ADMIN")
-                                .requestMatchers(
-                                        "/auth/logout",
-                                        "/auth/change-password"
-                                ).authenticated()
-                                .anyRequest().authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/logout", "/api/auth/change-password").authenticated()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/login/oauth2/**", // Route này của Spring nên giữ nguyên
+                                "/error",
+                                "/api/categories/**",
+                                "/api/attributes/**",
+                                "/api/brands/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))

@@ -77,7 +77,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String accessToken = jwtUtils.generateAccessToken(user);
         String refreshToken = jwtUtils.generateRefreshToken(user);
 
-        redisService.saveRefreshTokenToRedis(refreshToken, jwtUtils.getJwtLongExpiration());
+        redisService.saveRefreshTokenToRedis(user.getEmail(), refreshToken, jwtUtils.getJwtLongExpiration());
 
         // Redirect về Frontend kèm Token
         // URL sẽ dạng: http://localhost:3000/oauth-redirect?access_token=xyz&refresh_token=abc
