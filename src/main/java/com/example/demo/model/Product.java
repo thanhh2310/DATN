@@ -9,6 +9,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "products")
@@ -53,4 +55,10 @@ public class Product {
     @LastModifiedDate
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
+
+    // Thêm list này vào dưới cùng của class Product
+    @Builder.Default
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC") // Tự động sắp xếp ảnh theo thứ tự khi query
+    Set<ProductImage> images = new HashSet<>();
 }

@@ -26,6 +26,10 @@ public class ProductSku {
     @Column(name = "sku_code", nullable = false, unique = true, length = 100)
     String skuCode;
 
+    // Thêm thuộc tính này vào dưới thuộc tính skuCode
+    @Column(name = "image_url")
+    String imageUrl;
+
     @Column(nullable = false)
     BigDecimal price;
 

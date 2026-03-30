@@ -32,6 +32,10 @@ public class Category {
     @Column(nullable = false, unique = true)
     String slug;
 
+    // Thêm thuộc tính này vào dưới thuộc tính slug
+    @Column(name = "image_url")
+    String imageUrl;
+
     @Builder.Default
     @Column(name = "is_active")
     Boolean isActive = true;
