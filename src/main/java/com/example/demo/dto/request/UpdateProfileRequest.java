@@ -1,14 +1,14 @@
 package com.example.demo.dto.request;
 
 import jakarta.validation.constraints.Pattern;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@AllArgsConstructor
+@NoArgsConstructor
 public class UpdateProfileRequest {
     String lastName;
     String firstName;

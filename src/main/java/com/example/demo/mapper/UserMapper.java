@@ -13,6 +13,7 @@ import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.model.UserRole;
 import com.example.demo.repository.RoleRepository;
+import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class UserMapper {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
 
     public User registerToUser (RegisterRequest request){
         Role role = roleRepository.findByName(RoleName.ROLE_USER.name())
@@ -115,6 +117,7 @@ public class UserMapper {
         if(request.getRoles() != null && !request.getRoles().isEmpty()){
             // Xóa hết quan hệ cũ (Hibernate sẽ tự động delete dưới DB nhờ orphanRemoval=true)
             user.getUserRoles().clear();
+            userRepository.saveAndFlush(user);
 
             // Tạo danh sách quan hệ mới
             Set<UserRole> newRoles = request.getRoles().stream()
