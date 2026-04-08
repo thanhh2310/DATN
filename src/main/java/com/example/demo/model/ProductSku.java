@@ -8,6 +8,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "product_skus")
@@ -43,4 +44,9 @@ public class ProductSku {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
+
+    // Nằm bên trong class ProductSku
+    @Builder.Default
+    @OneToMany(mappedBy = "productSku", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<SkuValue> skuValues = new java.util.HashSet<>();
 }

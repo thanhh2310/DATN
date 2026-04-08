@@ -1,0 +1,52 @@
+package com.example.demo.service;
+
+import com.example.demo.repository.CategoryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.text.Normalizer;
+import java.util.regex.Pattern;
+
+@Component
+@RequiredArgsConstructor
+public class Helper {
+    private final CategoryRepository categoryRepository;
+
+    private String generateSlug(String name) {
+        if (name == null) return null;
+
+        // 1. Chuyển thành chữ thường
+        String temp = name.toLowerCase();
+
+        // 2. Chuẩn hóa Unicode để tách dấu ra khỏi chữ (Ví dụ: ấ -> a + dấu sắc)
+        temp = Normalizer.normalize(temp, Normalizer.Form.NFD);
+
+        // 3. Dùng Regex để loại bỏ các dấu
+        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
+        temp = pattern.matcher(temp).replaceAll("");
+
+        // 4. Thay thế chữ Đ/đ thành d (Vì Normalizer không xử lý chữ Đ)
+        temp = temp.replace("đ", "d");
+
+        // 5. Thay khoảng trắng và các ký tự đặc biệt thành dấu gạch ngang
+        temp = temp.replaceAll("[^a-z0-9\\s-]", ""); // Bỏ ký tự lạ
+        temp = temp.replaceAll("\\s+", "-"); // Khoảng trắng thành -
+
+        return temp;
+    }
+
+    public String generateUniqueSlug(String name) {
+        if (name == null) return null;
+
+        String baseSlug = generateSlug(name); // slug gốc
+        String slug = baseSlug;
+        int counter = 1;
+
+        // Loop đến khi tìm được slug chưa tồn tại
+        while (categoryRepository.existsBySlug(slug)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+        return slug;
+    }
+}

@@ -61,4 +61,14 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC") // Tự động sắp xếp ảnh theo thứ tự khi query
     Set<ProductImage> images = new HashSet<>();
+
+    // THÊM MỚI: Móc nối 1-N tới bảng product_specs
+    @Builder.Default
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<ProductSpec> specs = new HashSet<>();
+
+    // THÊM MỚI: Móc nối 1-N tới bảng product_skus
+    @Builder.Default
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<ProductSku> skus = new HashSet<>();
 }

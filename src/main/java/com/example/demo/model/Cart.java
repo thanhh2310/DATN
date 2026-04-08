@@ -6,6 +6,8 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "carts")
@@ -20,7 +22,7 @@ public class Cart {
     @JoinColumn(name = "user_id", unique = true)
     User user;
 
-    @Column(name = "session_id", length = 100)
+    @Column(name = "session_id", length = 100, unique = true)
     String sessionId;
 
     @CreationTimestamp
@@ -30,4 +32,8 @@ public class Cart {
     @UpdateTimestamp
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<CartItem> items = new HashSet<>();
 }

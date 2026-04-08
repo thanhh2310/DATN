@@ -16,13 +16,27 @@ public enum ErrorCode {
     UNAUTHENTICATED(9998,"Unauthenticated" ),
     EMAIL_OR_PASSWORD_NOT_CORRECT(105, "Email or password is not correct"),
     PASSWORD_NOT_MATCH(106, "Confirm password is not true" ),
-    BRAND_ALREADY_EXISTS(301,"Brand have already existed" ),
+    BRAND_ALREADY_EXISTED(301,"Brand have already existed" ),
     BRAND_NOT_FOUND(302, "Brand not found" ),
     CATEGORY_NOT_FOUND(304,"Category not found" ),
-    CATEGORY_ALREADY_EXISTS(305,"Category have already existed" ),
-    INVALID_PARENT(306,"Category cannot be its own parent" ),
+    CATEGORY_ALREADY_EXISTED(305,"Category have already existed" ),
+    INVALID_CATEGORY_PARENT(306,"Category cannot be its own parent" ),
+    CATEGORY_CYCLE_DETECTED(309, "Category cycle detected" ),
     ATTRIBUTE_NOT_FOUND(307, "Attribute not found"),
-    ATTRIBUTE_ALREADY_EXISTS(308, "Attribute have already existed");
+    ATTRIBUTE_ALREADY_EXISTED(308, "Attribute have already existed"),
+    INVALID_ATTRIBUTE_VALUE(310, "Invalid attribute value"),
+    ATTRIBUTE_VALUE_NOT_FOUND(311, "Attribute value not found"),
+    PRODUCT_NOT_FOUND(401, "Product not found" ),
+    ATTRIBUTE_NOT_ALLOWED_FOR_CATEGORY(312, "Attribute not allowed for category"),
+    SKU_CODE_ALREADY_EXISTED(313, "Sku code already existed"),
+    CART_NOT_FOUND(501, "Cart not found"),
+    CART_ITEM_NOT_FOUND(502, "Cart item not found"),
+    UNAUTHORIZED_CART_ACCESS(503, "You don't have permission to modify this cart item"),
+    SKU_NOT_FOUND(504, "Product SKU not found"),
+    SKU_INACTIVE(505, "Product SKU is no longer available"),
+    INSUFFICIENT_STOCK(506, "Not enough stock available"),
+    INVALID_QUANTITY(507, "Quantity must be greater than 0"),
+    MISSING_CART_IDENTIFIER(508, "Must provide either UserId or SessionId");
 
     ErrorCode(int code, String message) {
         this.code = code;
