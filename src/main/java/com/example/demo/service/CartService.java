@@ -74,7 +74,7 @@ public class CartService {
         }
 
         Optional<CartItem> existing = cartItemRepository
-                .findByCartIdAndSkuId(cart.getId(), sku.getId());
+                .findByCartIdAndProductSkuId(cart.getId(), sku.getId());
 
         if (existing.isPresent()) {
             CartItem item = existing.get();
@@ -193,7 +193,7 @@ public class CartService {
 
         for (CartItem guestItem : guestItems) {
             Integer skuId = guestItem.getProductSku().getId();
-            Optional<CartItem> userItemOpt = cartItemRepository.findByCartIdAndSkuId(userCart.getId(), skuId);
+            Optional<CartItem> userItemOpt = cartItemRepository.findByCartIdAndProductSkuId(userCart.getId(), skuId);
 
             if (userItemOpt.isPresent()) {
                 CartItem userItem = userItemOpt.get();
