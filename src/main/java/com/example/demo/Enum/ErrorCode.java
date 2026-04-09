@@ -38,7 +38,17 @@ public enum ErrorCode {
     INSUFFICIENT_STOCK(506, "Not enough stock available"),
     INVALID_QUANTITY(507, "Quantity must be greater than 0"),
     MISSING_CART_IDENTIFIER(508, "Must provide either UserId or SessionId"),
-    ADDRESS_NOT_FOUND(509,"Address not found" );
+    ADDRESS_NOT_FOUND(509,"Address not found" ),
+    SHIPPING_METHOD_NOT_FOUND(510,"Shipping method not found" ),
+    COUPON_NOT_FOUND(511, "Coupon not found" ),
+    INVALID_DATE_RANGE(512, "Invalid date range" ),
+    COUPON_INACTIVE(513, "Coupon inactive" ),
+    COUPON_NOT_STARTED(514,"Coupon not started" ),
+    COUPON_EXPIRED(515,"Coupon expired" ),
+    COUPON_USAGE_EXCEEDED(516, "Coupon usage exceeded"),
+    COUPON_NOT_APPLICABLE(517, "Coupon not applicable"),
+    SHIPPING_METHOD_ALREADY_EXISTED(518,"Shipping method already existed"),
+    COUPON_ALREADY_EXISTED(519, "Coupon already existed");
 
     ErrorCode(int code, String message) {
         this.code = code;

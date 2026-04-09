@@ -7,6 +7,7 @@ import com.example.demo.dto.response.AttributeResponse;
 import com.example.demo.service.AttributeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -35,6 +36,7 @@ public class AttributeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AttributeResponse> createAttribute(
             @Valid @RequestBody AttributeCreationRequest request) {
         return ApiResponse.<AttributeResponse>builder()
@@ -45,6 +47,7 @@ public class AttributeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AttributeResponse> updateAttribute(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAttributeRequest request) {
@@ -56,6 +59,7 @@ public class AttributeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteAttribute(@PathVariable Integer id) {
         attributeService.deleteAttribute(id);
 

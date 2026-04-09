@@ -6,6 +6,7 @@ import com.example.demo.dto.response.CategoryAttributeResponse;
 import com.example.demo.service.CategoryAttributeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public class CategoryAttributeController {
     private final CategoryAttributeService categoryAttributeService;
 
     @PostMapping("/{categoryId}/attributes")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<CategoryAttributeResponse> assignAttribute(
             @PathVariable Integer categoryId,
             @RequestBody CategoryAttributeRequest request) {
@@ -46,6 +48,7 @@ public class CategoryAttributeController {
     }
 
     @PutMapping("/attributes/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<CategoryAttributeResponse> update(
             @PathVariable Integer id,
             @RequestBody CategoryAttributeRequest request) {
@@ -60,6 +63,7 @@ public class CategoryAttributeController {
     }
 
     @DeleteMapping("/attributes/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         categoryAttributeService.removeCategoryAttribute(id);
 

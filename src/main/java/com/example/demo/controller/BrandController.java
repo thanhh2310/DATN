@@ -6,6 +6,7 @@ import com.example.demo.dto.response.BrandResponse;
 import com.example.demo.service.BrandService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public class BrandController {
     private final BrandService brandService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<BrandResponse> createBrand(
             @Valid @RequestBody BrandRequest request) {
         return ApiResponse.<BrandResponse>builder()
@@ -45,6 +47,7 @@ public class BrandController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<BrandResponse> updateBrand(
             @PathVariable Integer id,
             @Valid @RequestBody BrandRequest request) {
@@ -56,6 +59,7 @@ public class BrandController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteBrand(@PathVariable Integer id) {
         brandService.deleteBrand(id);
         return ApiResponse.<Void>builder()
