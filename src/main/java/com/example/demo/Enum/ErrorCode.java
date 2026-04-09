@@ -9,6 +9,7 @@ public enum ErrorCode {
     USER_IS_DELETED(103, "User is deleted" ),
     USER_AlREADY_ACTIVE(104, "User have already active" ),
     ROLE_ALREADY_EXISTED(201,"Role have already existed" ),
+    UNAUTHORIZED_ACTION(105, "Unauthorize action" ),
     ROLE_NOT_FOUND(202, " Role not found" ),
     INVALID_OTP_CODE(9999,"Invalid otp code" ),
     USER_NOT_ACTIVE(103,"User is not active" ),
@@ -36,7 +37,8 @@ public enum ErrorCode {
     SKU_INACTIVE(505, "Product SKU is no longer available"),
     INSUFFICIENT_STOCK(506, "Not enough stock available"),
     INVALID_QUANTITY(507, "Quantity must be greater than 0"),
-    MISSING_CART_IDENTIFIER(508, "Must provide either UserId or SessionId");
+    MISSING_CART_IDENTIFIER(508, "Must provide either UserId or SessionId"),
+    ADDRESS_NOT_FOUND(509,"Address not found" );
 
     ErrorCode(int code, String message) {
         this.code = code;

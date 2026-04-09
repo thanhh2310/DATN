@@ -1,7 +1,11 @@
 package com.example.demo.service;
 
+import com.example.demo.Enum.ErrorCode;
+import com.example.demo.config.WebErrorConfig;
 import com.example.demo.repository.CategoryRepository;
+import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
@@ -11,6 +15,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class Helper {
     private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
 
     private String generateSlug(String name) {
         if (name == null) return null;
@@ -48,5 +53,12 @@ public class Helper {
             counter++;
         }
         return slug;
+    }
+
+    public Integer getCurrentUserId() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.USER_NOT_FOUND))
+                .getId();
     }
 }
