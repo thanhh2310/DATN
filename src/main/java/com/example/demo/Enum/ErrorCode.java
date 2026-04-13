@@ -48,7 +48,10 @@ public enum ErrorCode {
     COUPON_USAGE_EXCEEDED(516, "Coupon usage exceeded"),
     COUPON_NOT_APPLICABLE(517, "Coupon not applicable"),
     SHIPPING_METHOD_ALREADY_EXISTED(518,"Shipping method already existed"),
-    COUPON_ALREADY_EXISTED(519, "Coupon already existed");
+    COUPON_ALREADY_EXISTED(519, "Coupon already existed"),
+    CART_IS_EMPTY(520, "Cart is empty"),
+    PAYMENT_METHOD_NOT_FOUND(521, "Payment method not found"),
+    PAYMENT_METHOD_ALREADY_EXISTED(522,"payment method have already existed" );
 
     ErrorCode(int code, String message) {
         this.code = code;

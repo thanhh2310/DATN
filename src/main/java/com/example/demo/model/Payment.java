@@ -21,7 +21,7 @@ public class Payment {
     Order order;
 
     @Column(nullable = false, length = 50)
-    String provider;
+    String providerCode;
 
     @Column(name = "transaction_id", length = 100)
     String transactionId;
@@ -35,4 +35,9 @@ public class Payment {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_method_id")
+    PaymentMethod paymentMethod;
+
 }

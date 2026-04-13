@@ -58,6 +58,10 @@ public class Order {
     @Column(name = "updated_at")
     LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_method_id")
+    PaymentMethod paymentMethod;
+
     public enum OrderStatus {
         PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
     }

@@ -252,7 +252,7 @@ public class ProductService {
 
         // LƯU Ý CHO SENIOR:
         // Chúng ta KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và Specs.
-        // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItem) của khách, hệ thống sẽ sập.
+        // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItemMapper) của khách, hệ thống sẽ sập.
         // Việc thêm/sửa tồn kho, đổi giá SKU nên được tách ra 1 API riêng biệt (VD: PUT /api/skus/{id}).
 
         product = productRepository.save(product);
