@@ -230,4 +230,55 @@ public class AuthService {
         userRepository.save(currentUser);
         redisService.deleteAllRefreshTokensOfUser(currentUser.getEmail());
     }
+
+    @Transactional
+    public TokenResponse refreshToken(RefreshTokenRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        try {
+            // 1. Lấy email (username) từ Refresh Token
+            String userEmail = jwtUtils.extractEmail(requestRefreshToken);
+
+            // 2. Tìm User trong Database
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new WebErrorConfig(ErrorCode.USER_NOT_FOUND));
+
+            if (!user.getIsActive() || user.getDeletedAt() != null) {
+                throw new WebErrorConfig(ErrorCode.USER_NOT_ACTIVE);
+            }
+
+            // 3. Kiểm tra Token có hợp lệ với chữ ký và thời hạn không
+            if (!jwtUtils.validateToken(requestRefreshToken, user)) {
+                throw new WebErrorConfig(ErrorCode.INVALID_REFRESH_TOKEN); // Thêm lỗi này vào Enum
+            }
+
+            // 4. Kiểm tra Refresh Token có tồn tại trong Redis không?
+            // Tránh trường hợp user đã Logout nhưng hacker vẫn cầm Refresh Token cũ đem đi gọi API
+            // (Giả định bạn có hàm getRefreshToken trong RedisService)
+            if (!redisService.isRefreshTokenValid(userEmail, requestRefreshToken)) {
+                throw new WebErrorConfig(ErrorCode.INVALID_REFRESH_TOKEN);
+            }
+
+            // 5. Cấp Access Token mới
+            String newAccessToken = jwtUtils.generateAccessToken(user);
+
+            // 6. Cấp Refresh Token mới (Refresh Token Rotation) - Rất quan trọng để bảo mật
+            String newRefreshToken = jwtUtils.generateRefreshToken(user);
+
+            // 7. Cập nhật lại Redis: Xóa cái cũ, lưu cái mới
+            redisService.deleteRefreshToken(userEmail, requestRefreshToken);
+            redisService.saveRefreshTokenToRedis(userEmail, newRefreshToken, jwtUtils.getJwtLongExpiration());
+
+            // 8. Trả về cặp Token mới cho Frontend
+            return TokenResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .build();
+
+        } catch (Exception e) {
+            // Nếu token hết hạn (ExpiredJwtException) hoặc sai định dạng (MalformedJwtException)
+            // Quá trình parse token của jwtUtils sẽ ném lỗi, ta bắt ở đây và ném lỗi nghiệp vụ
+            throw new WebErrorConfig(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+    }
 }

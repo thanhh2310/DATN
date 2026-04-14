@@ -50,6 +50,15 @@ public class Order {
     @Column(name = "shipping_city", nullable = false, length = 100)
     String shippingCity;
 
+    @Column(nullable = false)
+    BigDecimal subtotal;
+
+    @Column(nullable = false)
+    BigDecimal shippingFee;
+
+    @Column(nullable = false)
+    BigDecimal discountAmount;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
@@ -67,6 +76,6 @@ public class Order {
     }
 
     public enum PaymentStatus {
-        UNPAID, PAID, FAILED, REFUNDED
+        UNPAID,PENDING, PAID, FAILED, REFUNDED
     }
 }

@@ -51,7 +51,10 @@ public enum ErrorCode {
     COUPON_ALREADY_EXISTED(519, "Coupon already existed"),
     CART_IS_EMPTY(520, "Cart is empty"),
     PAYMENT_METHOD_NOT_FOUND(521, "Payment method not found"),
-    PAYMENT_METHOD_ALREADY_EXISTED(522,"payment method have already existed" );
+    PAYMENT_METHOD_ALREADY_EXISTED(522,"payment method have already existed" ),
+    OTP_RATE_LIMIT_EXCEEDED(523,"Otp rate limit exceeded" ),
+    OTP_EXPIRED(525, "Otp expired" ),
+    INVALID_REFRESH_TOKEN(526,"Invalid Token" );
 
     ErrorCode(int code, String message) {
         this.code = code;

@@ -85,4 +85,13 @@ public class AuthController {
                 .data(null)
                 .build();
     }
+
+    @PostMapping("/refresh-token")
+    public ApiResponse<TokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return ApiResponse.<TokenResponse>builder()
+                .code(200)
+                .message("Refresh token success")
+                .data(authService.refreshToken(request))
+                .build();
+    }
 }

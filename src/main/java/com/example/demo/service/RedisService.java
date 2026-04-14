@@ -45,4 +45,10 @@ public class RedisService {
             redisTemplate.delete(keys);
         }
     }
+
+    public boolean isRefreshTokenValid(String email, String token) {
+        String key = REFRESH_TOKEN_PREFIX + email + ":" + token;
+        String value = redisTemplate.opsForValue().get(key);
+        return "active".equals(value);
+    }
 }

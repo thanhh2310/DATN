@@ -1,0 +1,46 @@
+package com.example.demo.controller;
+
+import com.example.demo.dto.request.PlaceOrderRequest;
+import com.example.demo.dto.response.ApiResponse;
+import com.example.demo.dto.response.OrderHistoryResponse;
+import com.example.demo.dto.response.OrderResponse;
+import com.example.demo.dto.response.PageResponse;
+import com.example.demo.service.Helper;
+import com.example.demo.service.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+public class OrderController {
+    private final OrderService orderService;
+    private final Helper helper;
+
+    @PostMapping
+    public ApiResponse<OrderResponse> placeOrder(
+            @Valid @RequestBody PlaceOrderRequest request,
+            HttpServletRequest req
+    ) {
+
+        return ApiResponse.<OrderResponse>builder()
+                .code(200)
+                .message("Tạo đơn hàng thành công")
+                .data(orderService.placeOrder(helper.getCurrentUserId(), request, req))
+                .build();
+    }
+
+    @GetMapping("/my-orders")
+    public ApiResponse<PageResponse<OrderHistoryResponse>> getMyOrders(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ApiResponse.<PageResponse<OrderHistoryResponse>>builder()
+                .code(200)
+                .message("Lấy lịch sử đơn hàng thành công")
+                .data(orderService.getMyOrderHistory(helper.getCurrentUserId(), page, size))
+                .build();
+    }
+}

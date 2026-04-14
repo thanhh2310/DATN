@@ -1,9 +1,12 @@
 package com.example.demo.service;
 
+import com.example.demo.Enum.ErrorCode;
+import com.example.demo.config.WebErrorConfig;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.security.MessageDigest;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -30,14 +33,39 @@ public class OtpService {
         return code;
     }
 
-    public boolean validateOtp(String email, String codeToVerify){
+    public boolean validateOtp(String email, String codeToVerify) {
+        codeToVerify = codeToVerify.trim();
         String key = OTP_PREFIX + email;
+        String rateLimitKey = "OTP_RATE:" + email;
         Object storedCode = redisTemplate.opsForValue().get(key);
-        if(storedCode != null && storedCode.toString().equals(codeToVerify)){
-            // Xác thực thành công, xoá key khỏi Redis
+
+        // OTP hết hạn
+        if (storedCode == null) {
+            throw new WebErrorConfig(ErrorCode.OTP_EXPIRED);
+        }
+
+        // So sánh an toàn
+        boolean isMatch = MessageDigest.isEqual(
+                storedCode.toString().getBytes(),
+                codeToVerify.getBytes()
+        );
+
+        if (isMatch) {
             redisTemplate.delete(key);
+            redisTemplate.delete(rateLimitKey);
             return true;
         }
+        // Sai OTP → tăng số lần thử
+        Long attempts = redisTemplate.opsForValue().increment(rateLimitKey);
+
+        if (attempts == 1) {
+            redisTemplate.expire(rateLimitKey, 5, TimeUnit.MINUTES);
+        }
+
+        if (attempts > 3) {
+            throw new WebErrorConfig(ErrorCode.OTP_RATE_LIMIT_EXCEEDED);
+        }
+
         return false;
     }
 

@@ -56,12 +56,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/logout", "/api/auth/change-password").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/login/oauth2/**", // Route này của Spring nên giữ nguyên
+                                "/login/oauth2/**",
                                 "/error",
                                 "/api/categories/**",
                                 "/api/attributes/**",
                                 "/api/brands/**"
                         ).permitAll()
+                        .requestMatchers("/api/payments/vnpay-return/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
