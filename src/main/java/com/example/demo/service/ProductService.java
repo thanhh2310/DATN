@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.Enum.ErrorCode;
 import com.example.demo.config.WebErrorConfig;
 import com.example.demo.dto.request.ProductCreationRequest;
+import com.example.demo.dto.request.ProductFilterRequest;
 import com.example.demo.dto.request.ProductSkuRequest;
 import com.example.demo.dto.request.ProductSpecRequest;
 import com.example.demo.dto.request.ProductUpdateRequest;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -277,4 +279,84 @@ public class ProductService {
 
         // (Tùy chọn) Gửi event xóa sản phẩm ra khỏi Cache Redis hoặc Elasticsearch ở đây
     }
+
+    // =========================================================================
+// FILTER - LỌC SẢN PHẨM THEO TIÊU CHÍ
+// =========================================================================
+    public PageResponse<ProductResponse> filterProducts(ProductFilterRequest request) {
+        // 1. Build sort từ request.sortBy
+        Sort sort = buildSort(request.getSortBy());
+
+        // 2. Tạo Pageable
+        Pageable pageable = PageRequest.of(request.getPageNumber() - 1, request.getPageSize(), sort);
+
+        // 3. Xử lý gom nhóm AttributeValues trước khi ném vào Specification
+        Map<Integer, List<Integer>> groupedAttrValues = null;
+        if (request.getAttributeValueIds() != null && !request.getAttributeValueIds().isEmpty()) {
+            // Query DB 1 lần để lấy toàn bộ AttributeValue khách chọn
+            List<AttributeValue> attrValues = attributeValueRepository.findAllById(request.getAttributeValueIds());
+
+            // Dùng Stream API để gom nhóm theo Attribute ID (Ví dụ: 1 -> [Đỏ, Xanh], 2 -> [Size 42])
+            groupedAttrValues = attrValues.stream()
+                    .collect(Collectors.groupingBy(
+                            av -> av.getAttribute().getId(), // Key là ID của nhóm thuộc tính
+                            Collectors.mapping(AttributeValue::getId, Collectors.toList()) // Value là mảng ID các giá trị
+                    ));
+        }
+
+        // 4. Build Specification động (Truyền thêm groupedAttrValues)
+        Specification<Product> spec = ProductSpecification.buildFilter(request, groupedAttrValues);
+
+        // 5. Query
+        Page<Product> pageData = productRepository.findAll(spec, pageable);
+
+        // 6. Map sang response
+        List<ProductResponse> responses = pageData.getContent().stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+
+        return PageResponse.<ProductResponse>builder()
+                .currentPage(request.getPageNumber())
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .data(responses)
+                .build();
+    }
+
+// =========================================================================
+// SEARCH - TÌM KIẾM SẢN PHẨM THEO TỪ KHÓA
+// =========================================================================
+public PageResponse<ProductResponse> searchProducts(String keyword, int pageNumber, int pageSize) {
+    Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
+    
+    Page<Product> pageData = productRepository.searchByKeyword(keyword.trim(), pageable);
+    
+    List<ProductResponse> responses = pageData.getContent().stream()
+            .map(productMapper::toProductResponse)
+            .toList();
+    
+    return PageResponse.<ProductResponse>builder()
+            .currentPage(pageNumber)
+            .pageSize(pageData.getSize())
+            .totalElements(pageData.getTotalElements())
+            .totalPage(pageData.getTotalPages())
+            .data(responses)
+            .build();
+}
+
+// Helper: Chuyển đổi sortBy string sang Sort object
+private Sort buildSort(String sortBy) {
+    if (sortBy == null) return Sort.by("createdAt").descending();
+    return switch (sortBy) {
+        case "price_asc" -> Sort.by("basePrice").ascending();
+        case "price_desc" -> Sort.by("basePrice").descending();
+        case "name_asc" -> Sort.by("name").ascending();
+        case "name_desc" -> Sort.by("name").descending();
+        case "newest" -> Sort.by("createdAt").descending();
+        case "oldest" -> Sort.by("createdAt").ascending();
+        default -> Sort.by("createdAt").descending();
+    };
+}
+
 }

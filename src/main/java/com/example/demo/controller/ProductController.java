@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.request.ProductCreationRequest;
+import com.example.demo.dto.request.ProductFilterRequest;
 import com.example.demo.dto.request.ProductUpdateRequest;
 import com.example.demo.dto.response.ApiResponse;
 import com.example.demo.dto.response.PageResponse;
@@ -8,6 +9,10 @@ import com.example.demo.dto.response.ProductResponse;
 import com.example.demo.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -83,4 +88,49 @@ public class ProductController {
                 .data(null)
                 .build();
     }
+
+    // ================= FILTER =================
+@GetMapping("/filter")
+public ApiResponse<PageResponse<ProductResponse>> filterProducts(
+        @RequestParam(required = false) Integer categoryId,
+        @RequestParam(required = false) Integer brandId,
+        @RequestParam(required = false) BigDecimal minPrice,
+        @RequestParam(required = false) BigDecimal maxPrice,
+        @RequestParam(required = false) List<Integer> attributeValueIds,
+        @RequestParam(required = false) String sortBy,
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+) {
+    ProductFilterRequest request = ProductFilterRequest.builder()
+            .categoryId(categoryId)
+            .brandId(brandId)
+            .minPrice(minPrice)
+            .maxPrice(maxPrice)
+            .attributeValueIds(attributeValueIds)
+            .sortBy(sortBy)
+            .pageNumber(pageNumber)
+            .pageSize(pageSize)
+            .build();
+
+    return ApiResponse.<PageResponse<ProductResponse>>builder()
+            .code(200)
+            .message("Lọc sản phẩm thành công")
+            .data(productService.filterProducts(request))
+            .build();
+}
+
+// ================= SEARCH =================
+@GetMapping("/search")
+public ApiResponse<PageResponse<ProductResponse>> searchProducts(
+        @RequestParam String keyword,
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+) {
+    return ApiResponse.<PageResponse<ProductResponse>>builder()
+            .code(200)
+            .message("Tìm kiếm sản phẩm thành công")
+            .data(productService.searchProducts(keyword, pageNumber, pageSize))
+            .build();
+}
+
 }
