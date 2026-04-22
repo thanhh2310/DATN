@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class OrderMapper {
-    public OrderResponse toResponse(Order order){
-
-    }
+//    public OrderResponse toResponse(Order order){
+//
+//    }
 }
