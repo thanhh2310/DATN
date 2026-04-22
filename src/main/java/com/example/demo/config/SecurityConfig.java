@@ -8,6 +8,7 @@ import com.example.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
@@ -64,7 +65,11 @@ public class SecurityConfig {
                                 "/api/attributes/**",
                                 "/api/brands/**"
                         ).permitAll()
+                        // Cho phép Guest xem sản phẩm (chỉ GET), POST/PUT/DELETE vẫn cần ADMIN qua @PreAuthorize
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        // VNPAY callbacks: cả return và IPN đều không có JWT token
                         .requestMatchers("/api/payments/vnpay-return/**").permitAll()
+                        .requestMatchers("/api/payments/vnpay-ipn/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
