@@ -89,7 +89,7 @@ public class UserService implements UserDetailsService {
                 .pageSize(pageData.getSize())
                 .totalElements(pageData.getTotalElements())
                 .totalPage(pageData.getTotalPages())
-                .data(userResponses)
+                .items(userResponses)
                 .build();
     }
 

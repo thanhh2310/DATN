@@ -118,7 +118,7 @@ public class  CategoryService {
                 .totalPage(page.getTotalPages())
                 .pageSize(page.getSize())
                 .totalElements(page.getTotalElements())
-                .data(page.getContent().stream()
+                .items(page.getContent().stream()
                         .map(categoryMapper::categoryToResponse)
                         .toList())
                 .build();

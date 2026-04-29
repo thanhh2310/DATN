@@ -195,7 +195,7 @@ public class ProductService {
                 .pageSize(pageData.getSize())
                 .totalElements(pageData.getTotalElements())
                 .totalPage(pageData.getTotalPages())
-                .data(productResponses)
+                .items(productResponses)
                 .build();
     }
 
@@ -320,7 +320,7 @@ public class ProductService {
                 .pageSize(pageData.getSize())
                 .totalElements(pageData.getTotalElements())
                 .totalPage(pageData.getTotalPages())
-                .data(responses)
+                .items(responses)
                 .build();
     }
 
@@ -341,7 +341,7 @@ public PageResponse<ProductResponse> searchProducts(String keyword, int pageNumb
             .pageSize(pageData.getSize())
             .totalElements(pageData.getTotalElements())
             .totalPage(pageData.getTotalPages())
-            .data(responses)
+            .items(responses)
             .build();
 }
 

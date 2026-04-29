@@ -78,7 +78,7 @@ public class WishlistService {
                 .totalPage(wishlistPage.getTotalPages())
                 .pageSize(size)
                 .totalElements(wishlistPage.getTotalElements())
-                .data(wishlistPage.getContent().stream().map(wishlistMapper::toResponse).toList())
+                .items(wishlistPage.getContent().stream().map(wishlistMapper::toResponse).toList())
                 .build();
     }
 
