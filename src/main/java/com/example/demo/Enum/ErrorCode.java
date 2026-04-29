@@ -54,7 +54,9 @@ public enum ErrorCode {
     PAYMENT_METHOD_ALREADY_EXISTED(522,"payment method have already existed" ),
     OTP_RATE_LIMIT_EXCEEDED(523,"Otp rate limit exceeded" ),
     OTP_EXPIRED(525, "Otp expired" ),
-    INVALID_REFRESH_TOKEN(526,"Invalid Token" );
+    INVALID_REFRESH_TOKEN(526,"Invalid Token" ),
+    WISHLIST_ITEM_ALREADY_EXISTED(601, "Product already in wishlist"),
+    WISHLIST_ITEM_NOT_FOUND(602, "Product not found in wishlist");
 
     ErrorCode(int code, String message) {
         this.code = code;
