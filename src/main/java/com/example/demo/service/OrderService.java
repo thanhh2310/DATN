@@ -42,6 +42,7 @@ public class OrderService {
 
     private final CouponService couponService;
     private final PaymentService paymentService;
+    private final Helper helper;
 
     @Transactional
     public OrderResponse placeOrder(Integer userId, PlaceOrderRequest request, HttpServletRequest req) {
@@ -291,10 +292,7 @@ public class OrderService {
                     .map(item -> OrderHistoryResponse.OrderItemPreviewResponse.builder()
                             .skuId(item.getProductSku().getId())
                             .productName(item.getProductSku().getProduct().getName())
-                            .imageUrl(item.getProductSku().getImageUrl() != null ?
-                                    item.getProductSku().getImageUrl() :
-                                    item.getProductSku().getProduct().getImages().stream()
-                                            .findFirst().map(ProductImage::getImageUrl).orElse(null))
+                            .imageUrl(helper.resolveSkuImage(item.getProductSku()))
                             .quantity(item.getQuantity())
                             .price(item.getPrice())
                             .build())
@@ -318,4 +316,6 @@ public class OrderService {
                 .items(orderResponses)
                 .build();
     }
+
+
 }

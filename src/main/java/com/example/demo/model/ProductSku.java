@@ -27,10 +27,6 @@ public class ProductSku {
     @Column(name = "sku_code", nullable = false, unique = true, length = 100)
     String skuCode;
 
-    // Thêm thuộc tính này vào dưới thuộc tính skuCode
-    @Column(name = "image_url")
-    String imageUrl;
-
     @Column(nullable = false)
     BigDecimal price;
 
@@ -45,8 +41,11 @@ public class ProductSku {
     @Column(name = "created_at", updatable = false)
     LocalDateTime createdAt;
 
-    // Nằm bên trong class ProductSku
     @Builder.Default
     @OneToMany(mappedBy = "productSku", cascade = CascadeType.ALL, orphanRemoval = true)
     Set<SkuValue> skuValues = new java.util.HashSet<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "productSku", cascade = CascadeType.ALL, orphanRemoval = true)
+    Set<ProductSkuImage> images = new java.util.HashSet<>();
 }

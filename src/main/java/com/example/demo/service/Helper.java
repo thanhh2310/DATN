@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.Enum.ErrorCode;
 import com.example.demo.config.WebErrorConfig;
+import com.example.demo.model.ProductSku;
 import com.example.demo.repository.CategoryRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -60,5 +61,19 @@ public class Helper {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.USER_NOT_FOUND))
                 .getId();
+    }
+
+    public String resolveSkuImage(ProductSku sku) {
+        if (sku.getImages() != null && !sku.getImages().isEmpty()) {
+            return sku.getImages().stream()
+                    .filter(img -> Boolean.TRUE.equals(img.getIsThumbnail()))
+                    .findFirst()
+                    .orElse(sku.getImages().iterator().next())
+                    .getImageUrl();
+        }
+        if (sku.getProduct().getImages() != null && !sku.getProduct().getImages().isEmpty()) {
+            return sku.getProduct().getImages().iterator().next().getImageUrl();
+        }
+        return null;
     }
 }

@@ -34,6 +34,7 @@ public class CheckoutService {
     private final UserAddressMapper userAddressMapper;
 
     private final PaymentMethodRepository paymentMethodRepository;
+    private final Helper helper;
 
     @Transactional(readOnly = true)
     public CheckoutPreviewResponse preview(Integer userId, CheckoutPreviewRequest request) {
@@ -158,21 +159,11 @@ public class CheckoutService {
                 .id(item.getId())
                 .skuId(sku.getId())
                 .productName(sku.getProduct().getName())
-                .imageUrl(resolveImage(sku))
+                .imageUrl(helper.resolveSkuImage(sku))
                 .quantity(item.getQuantity())
                 .price(sku.getPrice())
                 .attributeValues(attributes) // Bổ sung để FE hiện Size, Màu
                 .build();
     }
 
-    private String resolveImage(ProductSku sku) {
-        if (sku.getImageUrl() != null) return sku.getImageUrl();
-
-        if (sku.getProduct().getImages() != null &&
-                !sku.getProduct().getImages().isEmpty()) {
-            return sku.getProduct().getImages().iterator().next().getImageUrl();
-        }
-
-        return null;
-    }
 }

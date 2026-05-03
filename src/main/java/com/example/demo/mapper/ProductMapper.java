@@ -73,7 +73,20 @@ public class ProductMapper {
                 .skuCode(sku.getSkuCode())
                 .price(sku.getPrice())
                 .stockQuantity(sku.getStockQuantity())
-                .imageUrl(sku.getImageUrl())
+                .images(sku.getImages() != null ?
+                        sku.getImages().stream()
+                                .sorted((img1, img2) -> {
+                                    Integer order1 = img1.getDisplayOrder() != null ? img1.getDisplayOrder() : 0;
+                                    Integer order2 = img2.getDisplayOrder() != null ? img2.getDisplayOrder() : 0;
+                                    return order1.compareTo(order2);
+                                })
+                                .map(skuImage -> SkuImageResponse.builder()
+                                        .id(skuImage.getId())
+                                        .imageUrl(skuImage.getImageUrl())
+                                        .isThumbnail(skuImage.getIsThumbnail())
+                                        .displayOrder(skuImage.getDisplayOrder())
+                                        .build())
+                                .collect(Collectors.toList()) : null)
                 .isActive(sku.getIsActive())
 
                 // Map sang class SkuAttributeResponse độc lập

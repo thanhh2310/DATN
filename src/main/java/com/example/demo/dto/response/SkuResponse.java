@@ -16,7 +16,7 @@ public class SkuResponse {
     String skuCode;
     BigDecimal price;
     Integer stockQuantity;
-    String imageUrl;
+    List<SkuImageResponse> images;
     Boolean isActive;
 
     // Trả về danh sách giá trị để Frontend in ra màn hình. VD: ["Màu Đen", "256GB"]

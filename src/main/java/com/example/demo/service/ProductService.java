@@ -139,10 +139,21 @@ public class ProductService {
                         .skuCode(skuReq.getSkuCode())
                         .price(skuReq.getPrice())
                         .stockQuantity(skuReq.getStockQuantity())
-                        .imageUrl(skuReq.getImageUrl())
                         .isActive(true)
                         .skuValues(new java.util.HashSet<>())
+                        .images(new java.util.HashSet<>())
                         .build();
+
+                if (skuReq.getImageUrls() != null && !skuReq.getImageUrls().isEmpty()) {
+                    for (int i = 0; i < skuReq.getImageUrls().size(); i++) {
+                        sku.getImages().add(ProductSkuImage.builder()
+                                .productSku(sku)
+                                .imageUrl(skuReq.getImageUrls().get(i))
+                                .isThumbnail(i == 0)
+                                .displayOrder(i)
+                                .build());
+                    }
+                }
 
                 if (skuReq.getAttributeValueIds() != null && !skuReq.getAttributeValueIds().isEmpty()) {
                     List<AttributeValue> attrValues = attributeValueRepository.findAllById(skuReq.getAttributeValueIds());
@@ -256,6 +267,34 @@ public class ProductService {
         // Chúng ta KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và Specs.
         // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItemMapper) của khách, hệ thống sẽ sập.
         // Việc thêm/sửa tồn kho, đổi giá SKU nên được tách ra 1 API riêng biệt (VD: PUT /api/skus/{id}).
+
+        // 4. Cập nhật ảnh cho từng SKU (Nếu có request)
+        if (request.getSkuImageUpdates() != null && !request.getSkuImageUpdates().isEmpty()) {
+            for (var skuImageUpdate : request.getSkuImageUpdates()) {
+                ProductSku sku = productSkuRepository.findById(skuImageUpdate.getSkuId())
+                        .orElseThrow(() -> new WebErrorConfig(ErrorCode.SKU_NOT_FOUND));
+
+                // Kiểm tra SKU này có thuộc về product đang update không
+                if (!sku.getProduct().getId().equals(id)) {
+                    throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
+                }
+
+                if (skuImageUpdate.getImageUrls() != null && !skuImageUpdate.getImageUrls().isEmpty()) {
+                    // Xóa ảnh cũ của SKU
+                    sku.getImages().clear();
+
+                    // Thêm ảnh mới
+                    for (int i = 0; i < skuImageUpdate.getImageUrls().size(); i++) {
+                        sku.getImages().add(ProductSkuImage.builder()
+                                .productSku(sku)
+                                .imageUrl(skuImageUpdate.getImageUrls().get(i))
+                                .isThumbnail(i == 0)
+                                .displayOrder(i)
+                                .build());
+                    }
+                }
+            }
+        }
 
         product = productRepository.save(product);
         return productMapper.toProductResponse(product);

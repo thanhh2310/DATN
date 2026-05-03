@@ -26,7 +26,7 @@ public class ProductSkuRequest {
     @Min(value = 0, message = "Tồn kho không được âm")
     Integer stockQuantity;
 
-    String imageUrl; // (Tùy chọn) Ảnh riêng cho phiên bản màu này
+    List<String> imageUrls; // (Tùy chọn) Danh sách ảnh cho SKU này
 
     // Danh sách các ID giá trị thuộc tính tạo nên SKU này (VD: ID của "Màu Đen", ID của "256GB")
     // Map vào bảng sku_values

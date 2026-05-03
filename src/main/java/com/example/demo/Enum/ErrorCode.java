@@ -56,7 +56,8 @@ public enum ErrorCode {
     OTP_EXPIRED(525, "Otp expired" ),
     INVALID_REFRESH_TOKEN(526,"Invalid Token" ),
     WISHLIST_ITEM_ALREADY_EXISTED(601, "Product already in wishlist"),
-    WISHLIST_ITEM_NOT_FOUND(602, "Product not found in wishlist");
+    WISHLIST_ITEM_NOT_FOUND(602, "Product not found in wishlist"),
+    IMAGE_NOT_FOUND(701, "Image not found");
 
     ErrorCode(int code, String message) {
         this.code = code;

@@ -24,6 +24,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductSkuRepository skuRepository;
     private final UserRepository userRepository;
+    private final Helper helper;
 
     public Cart getOrCreateCart(CartCreationRequest request) {
         if (request.getUserId() == null && (request.getSessionId() == null || request.getSessionId().isBlank())) {
@@ -242,7 +243,7 @@ public class CartService {
                     .id(item.getId())
                     .skuId(sku.getId())
                     .productName(sku.getProduct().getName())
-                    .imageUrl(sku.getImageUrl() != null ? sku.getImageUrl() : sku.getProduct().getImages().stream().findFirst().map(ProductImage::getImageUrl).orElse(null)) // Lấy ảnh SKU, nếu ko có lấy ảnh Product
+                    .imageUrl(helper.resolveSkuImage(sku))
                     .quantity(item.getQuantity())
                     .price(price)
                     .attributeValues(attributeValues)
@@ -259,4 +260,6 @@ public class CartService {
                 .totalAmount(total)
                 .build();
     }
+
+
 }
