@@ -21,13 +21,14 @@ public class AttributeValueService {
     private final AttributeRepository attributeRepository;
 
     @Transactional
-    public AttributeValueResponse addValue(Integer attributeId, String value) {
+    public AttributeValueResponse addValue(Integer attributeId, String value, String description) {
         Attribute attribute = attributeRepository.findById(attributeId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
 
         AttributeValue newValue = AttributeValue.builder()
                 .attribute(attribute)
                 .value(value)
+                .description(description)
                 .build();
 
         newValue = attributeValueRepository.save(newValue);
@@ -35,20 +36,23 @@ public class AttributeValueService {
         return AttributeValueResponse.builder()
                 .id(newValue.getId())
                 .value(newValue.getValue())
+                .description(newValue.getDescription())
                 .build();
     }
 
     @Transactional
     public AttributeValueResponse updateValue(Integer id, AttributeValueUpdateRequest request) {
         AttributeValue attributeValue = attributeValueRepository.findById(id)
-                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND)); // You can add ATTRIBUTE_VALUE_NOT_FOUND to ErrorCode
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
 
         attributeValue.setValue(request.getValue());
+        attributeValue.setDescription(request.getDescription());
         attributeValue = attributeValueRepository.save(attributeValue);
 
         return AttributeValueResponse.builder()
                 .id(attributeValue.getId())
                 .value(attributeValue.getValue())
+                .description(attributeValue.getDescription())
                 .build();
     }
 

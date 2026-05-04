@@ -236,6 +236,7 @@ public class CartService {
                                         .attributeName(attr.getName())
                                         .valueId(attrVal.getId())
                                         .valueName(attrVal.getValue())
+                                        .description(attrVal.getDescription())
                                         .build();
                             }).collect(Collectors.toList()) : null;
 

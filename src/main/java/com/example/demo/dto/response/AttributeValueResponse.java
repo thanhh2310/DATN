@@ -11,4 +11,5 @@ import lombok.experimental.FieldDefaults;
 public class AttributeValueResponse {
     Integer id;
     String value;
+    String description;
 }

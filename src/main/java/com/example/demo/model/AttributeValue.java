@@ -19,4 +19,7 @@ public class AttributeValue {
 
     @Column(nullable = false, length = 100)
     String value;
+
+    @Column(length = 500)
+    String description;
 }

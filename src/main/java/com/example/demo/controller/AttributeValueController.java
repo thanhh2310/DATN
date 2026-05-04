@@ -19,9 +19,10 @@ public class AttributeValueController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AttributeValueResponse> addValue(
             @PathVariable Integer attributeId,
-            @RequestParam String value) {
+            @RequestParam String value,
+            @RequestParam(required = false) String description) {
         AttributeValueResponse response =
-                attributeValueService.addValue(attributeId, value);
+                attributeValueService.addValue(attributeId, value, description);
 
         return ApiResponse.<AttributeValueResponse>builder()
                 .code(HttpStatus.OK.value())

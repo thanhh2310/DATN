@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.Enum.ErrorCode;
 import com.example.demo.config.WebErrorConfig;
 import com.example.demo.dto.request.AttributeCreationRequest;
+import com.example.demo.dto.request.AttributeCreationRequest.AttributeValueCreationRequest;
 import com.example.demo.dto.request.AttributeValueUpdateRequest;
 import com.example.demo.dto.request.UpdateAttributeRequest;
 import com.example.demo.dto.response.AttributeResponse;
@@ -60,8 +61,9 @@ public class AttributeService {
         // BƯỚC 2: Tạo con và gắn ID cha vừa sinh ra vào
         if(request.getValues() != null && !request.getValues().isEmpty()){
             List<AttributeValue> values = request.getValues().stream()
-                    .map(val -> AttributeValue.builder()
-                            .value(val)
+                    .map(valReq -> AttributeValue.builder()
+                            .value(valReq.getValue())
+                            .description(valReq.getDescription())
                             .attribute(savedAttribute) // 👉 Chắc chắn ID không null
                             .build())
                     .collect(Collectors.toList());
@@ -118,11 +120,13 @@ public class AttributeService {
                     }
 
                     existing.setValue(valReq.getValue());
+                    existing.setDescription(valReq.getDescription());
                     requestIds.add(valReq.getId());
                 }else {
                     //neu id = null thi them 1 attribute-value moi
                     AttributeValue newVal = AttributeValue.builder()
                             .value(valReq.getValue())
+                            .description(valReq.getDescription())
                             .attribute(attribute)
                             .build();
                     currentValues.add(newVal);

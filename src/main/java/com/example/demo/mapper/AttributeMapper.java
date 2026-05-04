@@ -21,6 +21,7 @@ public class AttributeMapper {
                     .map(val -> AttributeValueResponse.builder()
                             .id(val.getId())
                             .value(val.getValue())
+                            .description(val.getDescription())
                             .build())
                     .collect(Collectors.toList());
         }

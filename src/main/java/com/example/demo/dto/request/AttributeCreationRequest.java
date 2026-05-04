@@ -2,10 +2,8 @@ package com.example.demo.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.util.List;
 
@@ -13,6 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AttributeCreationRequest {
 
     @NotBlank(message = "Tên thuộc tính không được để trống")
@@ -22,5 +21,16 @@ public class AttributeCreationRequest {
     @Size(max = 255, message = "Mô tả không được vượt quá 255 ký tự")
     private String description;
 
-    private List<String> values;
+    private List<AttributeValueCreationRequest> values;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class AttributeValueCreationRequest {
+        @NotBlank(message = "Giá trị thuộc tính không được để trống")
+        String value;
+        String description;
+    }
 }

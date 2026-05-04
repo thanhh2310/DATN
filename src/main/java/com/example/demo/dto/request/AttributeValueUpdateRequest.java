@@ -13,4 +13,5 @@ public class AttributeValueUpdateRequest {
     Integer id;
     @NotBlank(message = "Value cannot be empty")
     String value;
+    String description;
 }

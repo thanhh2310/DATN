@@ -13,4 +13,5 @@ public class SkuAttributeResponse {
     String attributeName;  // Tên thuộc tính (VD: "Màu sắc")
     Integer valueId;       // ID của giá trị (VD: 10)
     String valueName;      // Tên giá trị (VD: "Xanh")
+    String description;    // Mô tả giá trị (VD: "Màu xanh dương đậm")
 }
