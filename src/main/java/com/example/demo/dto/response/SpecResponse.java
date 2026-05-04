@@ -10,6 +10,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SpecResponse {
     Integer id;
-    String attributeName; // VD: "Hệ điều hành"
-    String value;         // VD: "iOS 17"
+    Integer attributeId;
+    String attributeName;
+    Integer attributeValueId;
+    String attributeValue;
 }

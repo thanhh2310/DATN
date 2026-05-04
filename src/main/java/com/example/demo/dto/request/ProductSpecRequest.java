@@ -9,6 +9,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductSpecRequest {
-    Integer attributeId; // Ví dụ ID của thuộc tính "Hệ điều hành"
-    String value;        // Ví dụ: "iOS 17"
+    Integer attributeId;         // ID của thuộc tính (VD: "Hệ điều hành")
+    Integer attributeValueId;    // ID của giá trị thuộc tính (VD: "iOS 17")
 }

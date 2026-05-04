@@ -18,9 +18,6 @@ public class ProductSpec {
     Product product;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attribute_id", nullable = false)
-    Attribute attribute;
-
-    @Column(nullable = false)
-    String value;
+    @JoinColumn(name = "attribute_value_id", nullable = false)
+    AttributeValue attributeValue;
 }

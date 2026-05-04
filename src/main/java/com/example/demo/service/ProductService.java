@@ -37,7 +37,6 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final ProductSpecRepository productSpecRepository;
     private final ProductSkuRepository productSkuRepository;
-    private final AttributeRepository attributeRepository;
     private final AttributeValueRepository attributeValueRepository;
     private final ProductMapper productMapper;
 
@@ -85,34 +84,30 @@ public class ProductService {
 
         // 4. Lưu THÔNG SỐ KỸ THUẬT CHUNG (ProductSpec)
         if (request.getSpecs() != null && !request.getSpecs().isEmpty()) {
-            // Tối ưu N+1: Gom tất cả ID lại và query 1 lần duy nhất
-            Set<Integer> specAttributeIds = request.getSpecs().stream()
-                    .map(ProductSpecRequest::getAttributeId)
+            // Tối ưu N+1: Gom tất cả attributeValueId lại và query 1 lần duy nhất
+            Set<Integer> specAttributeValueIds = request.getSpecs().stream()
+                    .map(ProductSpecRequest::getAttributeValueId)
                     .collect(Collectors.toSet());
 
-            // Validate: Thuộc tính này có được phép dùng cho Category này không?
-            for (Integer attrId : specAttributeIds) {
-                if (!validAttributeIds.contains(attrId)) {
-                    // Bạn cần định nghĩa thêm ErrorCode này
-                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_ALLOWED_FOR_CATEGORY);
-                }
-            }
-
-            // Lấy tất cả Attribute từ DB lên trong 1 câu query
-            Map<Integer, Attribute> attributeMap = attributeRepository.findAllById(specAttributeIds)
-                    .stream().collect(Collectors.toMap(Attribute::getId, attr -> attr));
+            // Lấy tất cả AttributeValue từ DB lên trong 1 câu query
+            Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(specAttributeValueIds)
+                    .stream().collect(Collectors.toMap(AttributeValue::getId, av -> av));
 
             List<ProductSpec> specs = new ArrayList<>();
             for (var specReq : request.getSpecs()) {
-                Attribute attribute = attributeMap.get(specReq.getAttributeId());
-                if (attribute == null) {
-                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND);
+                AttributeValue attributeValue = attributeValueMap.get(specReq.getAttributeValueId());
+                if (attributeValue == null) {
+                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                }
+
+                // Validate: Thuộc tính này có được phép dùng cho Category này không?
+                if (!validAttributeIds.contains(attributeValue.getAttribute().getId())) {
+                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_ALLOWED_FOR_CATEGORY);
                 }
 
                 specs.add(ProductSpec.builder()
                         .product(product)
-                        .attribute(attribute)
-                        .value(specReq.getValue())
+                        .attributeValue(attributeValue)
                         .build());
             }
             productSpecRepository.saveAll(specs);
@@ -251,20 +246,27 @@ public class ProductService {
 
         // 3. Cập nhật Thông số kỹ thuật chung (Xóa hết nạp lại)
         if (request.getSpecs() != null) {
+            Set<Integer> specAttributeValueIds = request.getSpecs().stream()
+                    .map(ProductSpecRequest::getAttributeValueId)
+                    .collect(Collectors.toSet());
+
+            Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(specAttributeValueIds)
+                    .stream().collect(Collectors.toMap(AttributeValue::getId, av -> av));
+
             product.getSpecs().clear();
             for (var specReq : request.getSpecs()) {
-                Attribute attribute = attributeRepository.findById(specReq.getAttributeId())
-                        .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
+                AttributeValue attributeValue = attributeValueMap.get(specReq.getAttributeValueId());
+                if (attributeValue == null) {
+                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                }
                 product.getSpecs().add(ProductSpec.builder()
                         .product(product)
-                        .attribute(attribute)
-                        .value(specReq.getValue())
+                        .attributeValue(attributeValue)
                         .build());
             }
         }
 
-        // LƯU Ý CHO SENIOR:
-        // Chúng ta KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và Specs.
+        // KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và Specs.
         // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItemMapper) của khách, hệ thống sẽ sập.
         // Việc thêm/sửa tồn kho, đổi giá SKU nên được tách ra 1 API riêng biệt (VD: PUT /api/skus/{id}).
 

@@ -61,9 +61,12 @@ public class ProductMapper {
     private SpecResponse mapSpec(ProductSpec spec) {
         return SpecResponse.builder()
                 .id(spec.getId())
-                // Lấy tên của thuộc tính (VD: Màn hình, Pin) từ bảng Attribute
-                .attributeName(spec.getAttribute() != null ? spec.getAttribute().getName() : null)
-                .value(spec.getValue())
+                .attributeId(spec.getAttributeValue() != null && spec.getAttributeValue().getAttribute() != null
+                        ? spec.getAttributeValue().getAttribute().getId() : null)
+                .attributeName(spec.getAttributeValue() != null && spec.getAttributeValue().getAttribute() != null
+                        ? spec.getAttributeValue().getAttribute().getName() : null)
+                .attributeValueId(spec.getAttributeValue() != null ? spec.getAttributeValue().getId() : null)
+                .attributeValue(spec.getAttributeValue() != null ? spec.getAttributeValue().getValue() : null)
                 .build();
     }
 
