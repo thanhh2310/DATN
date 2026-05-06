@@ -413,9 +413,11 @@ public class ProductService {
     // SEARCH - TÌM KIẾM SẢN PHẨM THEO TỪ KHÓA
     // =========================================================================
     public PageResponse<ProductResponse> searchProducts(String keyword, int pageNumber, int pageSize) {
+        String safeKeyword = (keyword == null || keyword.trim().isEmpty()) ? "" : keyword.trim();
+
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
 
-        Page<Product> pageData = productRepository.searchByKeyword(keyword.trim(), pageable);
+        Page<Product> pageData = productRepository.searchByKeyword(safeKeyword, pageable);
 
         List<ProductResponse> responses = pageData.getContent().stream()
                 .map(productMapper::toProductResponse)
