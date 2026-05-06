@@ -50,11 +50,27 @@ public class ProductService {
         Brand brand = brandRepository.findById(request.getBrandId())
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.BRAND_NOT_FOUND));
 
+        // Bắt lỗi duplicate để tránh ID tăng rác trong DB
+        if (productRepository.existsBySlug(request.getSlug())) {
+            throw new WebErrorConfig(ErrorCode.SLUG_ALREADY_EXISTED);
+        }
+
         // LẤY DANH SÁCH CÁC THUỘC TÍNH HỢP LỆ CHO DANH MỤC NÀY
-        // Giả định trong Entity Category bạn đã có: Set<CategoryAttribute> categoryAttributes;
+        // Giả định trong Entity Category bạn đã có: Set<CategoryAttribute>
+        // categoryAttributes;
         Set<Integer> validAttributeIds = category.getCategoryAttributes().stream()
                 .map(ca -> ca.getAttribute().getId())
                 .collect(Collectors.toSet());
+
+        // Validate: Không có attributeValueId trùng lặp trong danh sách specs
+        if (request.getSpecs() != null && !request.getSpecs().isEmpty()) {
+            Set<Integer> specAttrValueIds = request.getSpecs().stream()
+                    .map(ProductSpecRequest::getAttributeValueId)
+                    .collect(Collectors.toSet());
+            if (specAttrValueIds.size() != request.getSpecs().size()) {
+                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
+            }
+        }
 
         // 2. Lưu bảng cha: PRODUCT (Bổ sung hàm check trùng Slug nếu cần)
         Product product = Product.builder()
@@ -151,10 +167,12 @@ public class ProductService {
                 }
 
                 if (skuReq.getAttributeValueIds() != null && !skuReq.getAttributeValueIds().isEmpty()) {
-                    List<AttributeValue> attrValues = attributeValueRepository.findAllById(skuReq.getAttributeValueIds());
+                    List<AttributeValue> attrValues = attributeValueRepository
+                            .findAllById(skuReq.getAttributeValueIds());
 
                     for (AttributeValue attrValue : attrValues) {
-                        // Validate quan trọng: Giá trị thuộc tính này có thuộc về 1 Thuộc tính được phép của Category không?
+                        // Validate quan trọng: Giá trị thuộc tính này có thuộc về 1 Thuộc tính được
+                        // phép của Category không?
                         if (!validAttributeIds.contains(attrValue.getAttribute().getId())) {
                             throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_ALLOWED_FOR_CATEGORY);
                         }
@@ -244,31 +262,54 @@ public class ProductService {
             }
         }
 
-        // 3. Cập nhật Thông số kỹ thuật chung (Xóa hết nạp lại)
+        // 3. Cập nhật Thông số kỹ thuật chung (Smart Update chuẩn JPA)
         if (request.getSpecs() != null) {
-            Set<Integer> specAttributeValueIds = request.getSpecs().stream()
+            // Bước A: Gom danh sách ID các thông số mà Frontend gửi lên
+            Set<Integer> newAttrValueIds = request.getSpecs().stream()
                     .map(ProductSpecRequest::getAttributeValueId)
                     .collect(Collectors.toSet());
 
-            Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(specAttributeValueIds)
+            // Validate: Không có attributeValueId trùng lặp trong request (Bạn làm rất chuẩn)
+            if (newAttrValueIds.size() != request.getSpecs().size()) {
+                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
+            }
+
+            // Bước B: XÓA các thông số cũ trong RAM nếu Frontend không gửi lên nữa
+            // Hibernate sẽ tự động hiểu và xếp lịch DELETE dưới DB
+            product.getSpecs().removeIf(spec -> !newAttrValueIds.contains(spec.getAttributeValue().getId()));
+
+            // Bước C: Tìm các thông số ĐÃ TỒN TẠI để KHÔNG ADD LẠI (Triệt tiêu 100% lỗi Duplicate Key)
+            Set<Integer> existingAttrValueIds = product.getSpecs().stream()
+                    .map(spec -> spec.getAttributeValue().getId())
+                    .collect(Collectors.toSet());
+
+            // Load hàng loạt AttributeValue từ DB lên để chuẩn bị gán
+            Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(newAttrValueIds)
                     .stream().collect(Collectors.toMap(AttributeValue::getId, av -> av));
 
-            product.getSpecs().clear();
+            // Bước D: THÊM MỚI những thông số chưa từng có
             for (var specReq : request.getSpecs()) {
-                AttributeValue attributeValue = attributeValueMap.get(specReq.getAttributeValueId());
-                if (attributeValue == null) {
-                    throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                if (!existingAttrValueIds.contains(specReq.getAttributeValueId())) {
+                    AttributeValue attributeValue = attributeValueMap.get(specReq.getAttributeValueId());
+                    if (attributeValue == null) {
+                        throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                    }
+
+                    // CHÚ Ý: Add thẳng vào List của Product, tuyệt đối không dùng productSpecRepository.save()
+                    product.getSpecs().add(ProductSpec.builder()
+                            .product(product)
+                            .attributeValue(attributeValue)
+                            .build());
                 }
-                product.getSpecs().add(ProductSpec.builder()
-                        .product(product)
-                        .attributeValue(attributeValue)
-                        .build());
             }
         }
 
-        // KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và Specs.
-        // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItemMapper) của khách, hệ thống sẽ sập.
-        // Việc thêm/sửa tồn kho, đổi giá SKU nên được tách ra 1 API riêng biệt (VD: PUT /api/skus/{id}).
+        // KHÔNG update trực tiếp list SKUs ở đây bằng lệnh clear() giống Images và
+        // Specs.
+        // Vì nếu xóa 1 SKU đang nằm trong giỏ hàng (CartItemMapper) của khách, hệ thống
+        // sẽ sập.
+        // Việc thêm/sửa tồn kho, đổi giá SKU nên được tách ra 1 API riêng biệt (VD: PUT
+        // /api/skus/{id}).
 
         // 4. Cập nhật ảnh cho từng SKU (Nếu có request)
         if (request.getSkuImageUpdates() != null && !request.getSkuImageUpdates().isEmpty()) {
@@ -318,12 +359,13 @@ public class ProductService {
         // Tránh việc khách hàng vô tình có đường link SKU cũ vẫn đặt hàng được
         product.getSkus().forEach(sku -> sku.setIsActive(false));
 
-        // (Tùy chọn) Gửi event xóa sản phẩm ra khỏi Cache Redis hoặc Elasticsearch ở đây
+        // (Tùy chọn) Gửi event xóa sản phẩm ra khỏi Cache Redis hoặc Elasticsearch ở
+        // đây
     }
 
     // =========================================================================
-// FILTER - LỌC SẢN PHẨM THEO TIÊU CHÍ
-// =========================================================================
+    // FILTER - LỌC SẢN PHẨM THEO TIÊU CHÍ
+    // =========================================================================
     public PageResponse<ProductResponse> filterProducts(ProductFilterRequest request) {
         // 1. Build sort từ request.sortBy
         Sort sort = buildSort(request.getSortBy());
@@ -337,11 +379,13 @@ public class ProductService {
             // Query DB 1 lần để lấy toàn bộ AttributeValue khách chọn
             List<AttributeValue> attrValues = attributeValueRepository.findAllById(request.getAttributeValueIds());
 
-            // Dùng Stream API để gom nhóm theo Attribute ID (Ví dụ: 1 -> [Đỏ, Xanh], 2 -> [Size 42])
+            // Dùng Stream API để gom nhóm theo Attribute ID (Ví dụ: 1 -> [Đỏ, Xanh], 2 ->
+            // [Size 42])
             groupedAttrValues = attrValues.stream()
                     .collect(Collectors.groupingBy(
                             av -> av.getAttribute().getId(), // Key là ID của nhóm thuộc tính
-                            Collectors.mapping(AttributeValue::getId, Collectors.toList()) // Value là mảng ID các giá trị
+                            Collectors.mapping(AttributeValue::getId, Collectors.toList()) // Value là mảng ID các giá
+                                                                                           // trị
                     ));
         }
 
@@ -365,39 +409,40 @@ public class ProductService {
                 .build();
     }
 
-// =========================================================================
-// SEARCH - TÌM KIẾM SẢN PHẨM THEO TỪ KHÓA
-// =========================================================================
-public PageResponse<ProductResponse> searchProducts(String keyword, int pageNumber, int pageSize) {
-    Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
-    
-    Page<Product> pageData = productRepository.searchByKeyword(keyword.trim(), pageable);
-    
-    List<ProductResponse> responses = pageData.getContent().stream()
-            .map(productMapper::toProductResponse)
-            .toList();
-    
-    return PageResponse.<ProductResponse>builder()
-            .currentPage(pageNumber)
-            .pageSize(pageData.getSize())
-            .totalElements(pageData.getTotalElements())
-            .totalPage(pageData.getTotalPages())
-            .items(responses)
-            .build();
-}
+    // =========================================================================
+    // SEARCH - TÌM KIẾM SẢN PHẨM THEO TỪ KHÓA
+    // =========================================================================
+    public PageResponse<ProductResponse> searchProducts(String keyword, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
 
-// Helper: Chuyển đổi sortBy string sang Sort object
-private Sort buildSort(String sortBy) {
-    if (sortBy == null) return Sort.by("createdAt").descending();
-    return switch (sortBy) {
-        case "price_asc" -> Sort.by("basePrice").ascending();
-        case "price_desc" -> Sort.by("basePrice").descending();
-        case "name_asc" -> Sort.by("name").ascending();
-        case "name_desc" -> Sort.by("name").descending();
-        case "newest" -> Sort.by("createdAt").descending();
-        case "oldest" -> Sort.by("createdAt").ascending();
-        default -> Sort.by("createdAt").descending();
-    };
-}
+        Page<Product> pageData = productRepository.searchByKeyword(keyword.trim(), pageable);
+
+        List<ProductResponse> responses = pageData.getContent().stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+
+        return PageResponse.<ProductResponse>builder()
+                .currentPage(pageNumber)
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .items(responses)
+                .build();
+    }
+
+    // Helper: Chuyển đổi sortBy string sang Sort object
+    private Sort buildSort(String sortBy) {
+        if (sortBy == null)
+            return Sort.by("createdAt").descending();
+        return switch (sortBy) {
+            case "price_asc" -> Sort.by("basePrice").ascending();
+            case "price_desc" -> Sort.by("basePrice").descending();
+            case "name_asc" -> Sort.by("name").ascending();
+            case "name_desc" -> Sort.by("name").descending();
+            case "newest" -> Sort.by("createdAt").descending();
+            case "oldest" -> Sort.by("createdAt").ascending();
+            default -> Sort.by("createdAt").descending();
+        };
+    }
 
 }

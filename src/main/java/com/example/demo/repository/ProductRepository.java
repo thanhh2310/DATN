@@ -11,6 +11,12 @@ import org.springframework.data.repository.query.Param;
 public interface ProductRepository extends JpaRepository<Product, Integer>,
         JpaSpecificationExecutor<Product> {
 
+    boolean existsBySlug(String slug);
+    boolean existsByName(String name);
+
+    boolean existsBySlugAndIdNot(String slug, Integer id);
+    boolean existsByNameAndIdNot(String name, Integer id);
+
     // Search API: Tìm theo tên hoặc mô tả, chỉ lấy sản phẩm active
     @Query("SELECT p FROM Product p WHERE p.isActive = true " +
            "AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
