@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @UtilityClass
 public class ProductSpecification {
@@ -26,14 +27,15 @@ public class ProductSpecification {
      */
     public Specification<Product> buildFilter(
             ProductFilterRequest request,
-            Map<Integer, List<Integer>> groupedAttrValues) {
+            Map<Integer, List<Integer>> groupedAttrValues,
+            Set<Integer> categoryIds) {
 
         // 1. Luôn luôn khởi tạo với điều kiện gốc (Sản phẩm phải đang Active)
         Specification<Product> spec = Specification.where(isActive());
 
         // 2. Nối thêm Category nếu có
-        if (request.getCategoryId() != null) {
-            spec = spec.and(hasCategory(request.getCategoryId()));
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            spec = spec.and(hasCategoryIn(categoryIds));
         }
 
         // 3. Nối thêm Brand nếu có
@@ -68,10 +70,10 @@ public class ProductSpecification {
     }
 
     /** Lọc theo danh mục */
-    private Specification<Product> hasCategory(Integer categoryId) {
-        if (categoryId == null) return null;
-        return (root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId);
-    }
+//    private Specification<Product> hasCategory(Integer categoryId) {
+//        if (categoryId == null) return null;
+//        return (root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId);
+//    }
 
     /** Lọc theo thương hiệu */
     private Specification<Product> hasBrand(Integer brandId) {
@@ -123,5 +125,10 @@ public class ProductSpecification {
 
             return cb.exists(subquery);
         };
+    }
+
+    private Specification<Product> hasCategoryIn(Set<Integer> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) return null;
+        return (root, query, cb) -> root.get("category").get("id").in(categoryIds);
     }
 }

@@ -10,4 +10,7 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
     boolean existsBySlug(@NotBlank(message = "Slug không được để trống") String slug);
     List<Category> findByParentIsNull();
+
+    List<Category> findByParentId(Integer parentId);
+
 }

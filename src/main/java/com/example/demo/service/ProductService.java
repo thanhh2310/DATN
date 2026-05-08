@@ -21,10 +21,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -372,6 +369,11 @@ public class ProductService {
 
         // 2. Tạo Pageable
         Pageable pageable = PageRequest.of(request.getPageNumber() - 1, request.getPageSize(), sort);
+        // Xử lý Category: Thu thập tất cả ID con nếu truyền vào category cha
+        Set<Integer> categoryIds = null;
+        if (request.getCategoryId() != null) {
+            categoryIds = collectAllCategoryIds(request.getCategoryId());
+        }
 
         // 3. Xử lý gom nhóm AttributeValues trước khi ném vào Specification
         Map<Integer, List<Integer>> groupedAttrValues = null;
@@ -390,7 +392,7 @@ public class ProductService {
         }
 
         // 4. Build Specification động (Truyền thêm groupedAttrValues)
-        Specification<Product> spec = ProductSpecification.buildFilter(request, groupedAttrValues);
+        Specification<Product> spec = ProductSpecification.buildFilter(request, groupedAttrValues, categoryIds);
 
         // 5. Query
         Page<Product> pageData = productRepository.findAll(spec, pageable);
@@ -446,5 +448,24 @@ public class ProductService {
             default -> Sort.by("createdAt").descending();
         };
     }
+
+    /**
+     * Thu thập tất cả categoryId: bao gồm chính nó + toàn bộ con/cháu đệ quy.
+     * VD: Input id=1 ("Điện thoại") → Output: {1, 2, 3}
+     */
+    private Set<Integer> collectAllCategoryIds(Integer categoryId) {
+        Set<Integer> result = new HashSet<>();
+        result.add(categoryId); // Thêm chính nó
+
+        // Lấy các danh mục con trực tiếp
+        List<Category> children = categoryRepository.findByParentId(categoryId);
+
+        for (Category child : children) {
+            result.addAll(collectAllCategoryIds(child.getId())); // Đệ quy xuống cháu
+        }
+
+        return result;
+    }
+
 
 }

@@ -26,7 +26,7 @@ public class OAuth2LoginFailureHandler extends SimpleUrlAuthenticationFailureHan
             throws IOException, ServletException {
         String errorCode = exception.getMessage() != null ? exception.getMessage() : "oauth2_login_failed";
 
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/")
                 .queryParam("error", errorCode)
                 .build().toUriString();
 
