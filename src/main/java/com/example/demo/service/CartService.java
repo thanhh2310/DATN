@@ -25,6 +25,7 @@ public class CartService {
     private final ProductSkuRepository skuRepository;
     private final UserRepository userRepository;
     private final Helper helper;
+    private final UserInteractionService userInteractionService;
 
     public Cart getOrCreateCart(CartCreationRequest request) {
         if (request.getUserId() == null && (request.getSessionId() == null || request.getSessionId().isBlank())) {
@@ -94,6 +95,13 @@ public class CartService {
                             .build()
             );
         }
+
+        // Track ADD_TO_CART interaction
+        userInteractionService.trackAddToCart(
+                cart.getUser() != null ? cart.getUser().getId() : null,
+                cart.getSessionId(),
+                sku.getProduct().getId()
+        );
 
         CartCreationRequest newReq = CartCreationRequest.builder()
                 .userId(cart.getUser() != null ? cart.getUser().getId() : null)

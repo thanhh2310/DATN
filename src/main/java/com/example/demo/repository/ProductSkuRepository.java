@@ -11,6 +11,8 @@ import java.util.Collection;
 
 public interface ProductSkuRepository extends JpaRepository<ProductSku, Integer> {
     boolean existsBySkuCodeIn(Collection<String> skuCodes);
+    
+    boolean existsBySkuCode(String skuCode);
 
     @Modifying
     @Query("UPDATE ProductSku s SET s.stockQuantity = s.stockQuantity - :qty WHERE s.id = :skuId AND s.stockQuantity >= :qty")

@@ -42,6 +42,7 @@ public class OrderService {
 
     private final CouponService couponService;
     private final PaymentService paymentService;
+    private final UserInteractionService userInteractionService;
     private final Helper helper;
 
     @Transactional
@@ -208,7 +209,15 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Đơn hàng không tồn tại"));
 
-        // 1. Tránh duplicate callback hoặc xử lý lại đơn đã hủy
+        // Idempotent: Check payment record trước để tránh xử lý trùng khi VNPAY gọi callback nhiều lần
+        Payment existingPayment = paymentRepository.findByOrderId(orderId).orElse(null);
+        if (existingPayment != null && vnpTransactionNo != null
+                && existingPayment.getTransactionId() != null
+                && existingPayment.getTransactionId().equals(vnpTransactionNo)) {
+            return;
+        }
+
+        // Tránh duplicate callback hoặc xử lý lại đơn đã hủy
         if (order.getPaymentStatus() == Order.PaymentStatus.PAID ||
                 order.getOrderStatus() == Order.OrderStatus.CANCELLED) {
             return;
@@ -219,11 +228,19 @@ public class OrderService {
             order.setPaymentStatus(Order.PaymentStatus.PAID);
             order.setOrderStatus(Order.OrderStatus.PROCESSING);
 
-            Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
-            if (payment != null) {
-                payment.setStatus(Order.PaymentStatus.PAID.name());
-                payment.setTransactionId(vnpTransactionNo);
-                paymentRepository.save(payment);
+            if (existingPayment != null) {
+                existingPayment.setStatus(Order.PaymentStatus.PAID.name());
+                existingPayment.setTransactionId(vnpTransactionNo);
+                paymentRepository.save(existingPayment);
+            }
+
+            // Track PURCHASE interaction cho từng sản phẩm trong đơn
+            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+            for (OrderItem item : orderItems) {
+                userInteractionService.trackPurchase(
+                        order.getUser().getId(),
+                        item.getProductSku().getProduct().getId()
+                );
             }
 
         } else {
@@ -231,10 +248,9 @@ public class OrderService {
             order.setPaymentStatus(Order.PaymentStatus.FAILED);
             order.setOrderStatus(Order.OrderStatus.CANCELLED);
 
-            Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
-            if (payment != null) {
-                payment.setStatus(Order.PaymentStatus.FAILED.name());
-                paymentRepository.save(payment);
+            if (existingPayment != null) {
+                existingPayment.setStatus(Order.PaymentStatus.FAILED.name());
+                paymentRepository.save(existingPayment);
             }
 
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
@@ -253,7 +269,7 @@ public class OrderService {
 
         orderRepository.save(order);
 
-        // 2. Lưu lịch sử đơn hàng
+        // Lưu lịch sử đơn hàng
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(order)
                 .status(order.getOrderStatus().name())

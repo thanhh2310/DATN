@@ -60,7 +60,10 @@ public enum ErrorCode {
     IMAGE_NOT_FOUND(701, "Image not found"),
     SLUG_ALREADY_EXISTED(402, "Slug already existed"),
     DUPLICATE_ATTRIBUTE_VALUE_IN_SPECS(403, "Duplicate attribute value in specs"),
-    DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST(404, "Duplicate attribute value id in request");
+    DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST(404, "Duplicate attribute value id in request"),
+    REVIEW_ALREADY_EXISTED(801, "Review already existed for this order item"),
+    REVIEW_NOT_FOUND(802, "Review not found"),
+    INVALID_INTERACTION_TYPE(901, "Invalid interaction type");
 
     ErrorCode(int code, String message) {
         this.code = code;
