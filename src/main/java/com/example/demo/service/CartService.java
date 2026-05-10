@@ -224,7 +224,7 @@ public class CartService {
 
     public CartDetailResponse getCartDetail(CartCreationRequest request) {
         Cart cart = getOrCreateCart(request);
-        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> items = cartItemRepository.findByCartIdWithDetails(cart.getId());
 
         List<CartItemResponse> responses = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
