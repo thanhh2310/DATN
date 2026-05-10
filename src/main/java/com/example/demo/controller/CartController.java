@@ -17,11 +17,17 @@ public class CartController {
     private final Helper helper;
 
     private void secureRequest(CartCreationRequest request) {
-        // Nếu user đã đăng nhập, helper sẽ trả về ID thật. Nếu là Khách (Guest), helper trả về null.
-        Integer currentUserId = helper.getCurrentUserId();
 
-        // Ghi đè luôn! Cho dù Hacker cố tình gửi userId = 5, hệ thống vẫn ép về ID thật của Token.
-        request.setUserId(currentUserId);
+        try {
+            Integer currentUserId = helper.getCurrentUserId();
+
+            // Nếu login → override userId
+            request.setUserId(currentUserId);
+
+        } catch (Exception e) {
+            // Guest thì bỏ qua
+            request.setUserId(null);
+        }
     }
 
     @PostMapping("/detail")
