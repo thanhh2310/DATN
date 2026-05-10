@@ -309,32 +309,6 @@ public class ProductService {
         // /api/skus/{id}).
 
         // 4. Cập nhật ảnh cho từng SKU (Nếu có request)
-        if (request.getSkuImageUpdates() != null && !request.getSkuImageUpdates().isEmpty()) {
-            for (var skuImageUpdate : request.getSkuImageUpdates()) {
-                ProductSku sku = productSkuRepository.findById(skuImageUpdate.getSkuId())
-                        .orElseThrow(() -> new WebErrorConfig(ErrorCode.SKU_NOT_FOUND));
-
-                // Kiểm tra SKU này có thuộc về product đang update không
-                if (!sku.getProduct().getId().equals(id)) {
-                    throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
-                }
-
-                if (skuImageUpdate.getImageUrls() != null && !skuImageUpdate.getImageUrls().isEmpty()) {
-                    // Xóa ảnh cũ của SKU
-                    sku.getImages().clear();
-
-                    // Thêm ảnh mới
-                    for (int i = 0; i < skuImageUpdate.getImageUrls().size(); i++) {
-                        sku.getImages().add(ProductSkuImage.builder()
-                                .productSku(sku)
-                                .imageUrl(skuImageUpdate.getImageUrls().get(i))
-                                .isThumbnail(i == 0)
-                                .displayOrder(i)
-                                .build());
-                    }
-                }
-            }
-        }
 
         product = productRepository.save(product);
         return productMapper.toProductResponse(product);

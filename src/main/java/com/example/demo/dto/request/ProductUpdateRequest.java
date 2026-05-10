@@ -32,17 +32,4 @@ public class ProductUpdateRequest {
     List<String> imageUrls;
     List<ProductSpecRequest> specs;
 
-    // Cập nhật ảnh cho từng SKU (key là SKU ID, value là danh sách ảnh mới)
-    // Chỉ dùng để thêm/sửa ảnh SKU, không xóa SKU đang có trong giỏ hàng
-    List<SkuImageUpdate> skuImageUpdates;
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class SkuImageUpdate {
-        Integer skuId;
-        List<String> imageUrls;
-    }
 }

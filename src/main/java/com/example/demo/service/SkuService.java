@@ -13,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -79,19 +76,21 @@ public class SkuService {
         ProductSku sku = productSkuRepository.findById(skuId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.SKU_NOT_FOUND));
 
+        // 1. Cập nhật Core SKU
         if (!sku.getSkuCode().equals(request.getSkuCode())) {
             if (productSkuRepository.existsBySkuCode(request.getSkuCode())) {
                 throw new WebErrorConfig(ErrorCode.SKU_CODE_ALREADY_EXISTED);
             }
             sku.setSkuCode(request.getSkuCode());
         }
-
         sku.setPrice(request.getPrice());
         sku.setStockQuantity(request.getStockQuantity());
+
         if (request.getIsActive() != null) {
             sku.setIsActive(request.getIsActive());
         }
 
+        // 2. Cập nhật Ảnh SKU
         if (request.getImageUrls() != null) {
             sku.getImages().clear();
             for (int i = 0; i < request.getImageUrls().size(); i++) {
@@ -104,15 +103,35 @@ public class SkuService {
             }
         }
 
+        // 3. Cập nhật SkuValues (SMART UPDATE ĐỂ FIX LỖI DUPLICATE KEY)
         if (request.getAttributeValueIds() != null) {
-            sku.getSkuValues().clear();
-            List<AttributeValue> attrValues = attributeValueRepository.findAllById(request.getAttributeValueIds());
-            for (AttributeValue attrValue : attrValues) {
-                SkuValue skuValue = SkuValue.builder()
-                        .productSku(sku)
-                        .attributeValue(attrValue)
-                        .build();
-                sku.getSkuValues().add(skuValue);
+            // Gom danh sách ID mới thành Set để query cho nhanh
+            Set<Integer> newAttrValueIds = new HashSet<>(request.getAttributeValueIds());
+
+            // A. XÓA những thuộc tính cũ không còn nằm trong request
+            sku.getSkuValues().removeIf(sv -> !newAttrValueIds.contains(sv.getAttributeValue().getId()));
+
+            // B. Lấy danh sách ID thuộc tính ĐANG CÓ để không Add đè lên
+            Set<Integer> existingIds = sku.getSkuValues().stream()
+                    .map(sv -> sv.getAttributeValue().getId())
+                    .collect(Collectors.toSet());
+
+            // C. Tải các AttributeValue từ DB lên để chuẩn bị Add
+            Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(newAttrValueIds)
+                    .stream().collect(Collectors.toMap(AttributeValue::getId, av -> av));
+
+            // D. THÊM MỚI những thuộc tính chưa có
+            for (Integer newId : newAttrValueIds) {
+                if (!existingIds.contains(newId)) {
+                    AttributeValue attrValue = attributeValueMap.get(newId);
+                    if (attrValue == null) {
+                        throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                    }
+                    sku.getSkuValues().add(SkuValue.builder()
+                            .productSku(sku)
+                            .attributeValue(attrValue)
+                            .build());
+                }
             }
         }
 
