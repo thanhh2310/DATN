@@ -21,4 +21,10 @@ public interface CartItemRepository extends JpaRepository<CartItem, Integer> {
             "LEFT JOIN FETCH av.attribute " +
             "WHERE ci.cart.id = :cartId")
     List<CartItem> findByCartIdWithDetails(@Param("cartId") Integer cartId);
+
+    @Query("SELECT ci FROM CartItem ci " +
+            "JOIN FETCH ci.productSku sku " +
+            "JOIN FETCH sku.product p " +
+            "WHERE ci.cart.id = :cartId AND ci.id IN :itemIds")
+    List<CartItem> findSelectedItems(@Param("cartId") Integer cartId, @Param("itemIds") List<Integer> itemIds);
 }

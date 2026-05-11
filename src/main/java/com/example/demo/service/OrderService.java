@@ -35,6 +35,9 @@ public class OrderService {
     private final PaymentRepository paymentRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final CouponRepository couponRepository;
+    private final UserRepository userRepository;
+    private final ProductRepository productRepository;
+    private final UserInteractionRepository userInteractionRepository;
 
     private final ShippingMethodRepository shippingMethodRepository;
     private final UserAddressRepository userAddressRepository;
@@ -52,10 +55,10 @@ public class OrderService {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.CART_NOT_FOUND));
 
-        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> items = cartItemRepository.findSelectedItems(cart.getId(), request.getCartItemIds());
 
         if (items.isEmpty()) {
-            throw new WebErrorConfig(ErrorCode.CART_IS_EMPTY);
+            throw new WebErrorConfig(ErrorCode.SELECTED_ITEMS_NOT_FOUND);
         }
 
         // 2. Validate stock
@@ -129,6 +132,7 @@ public class OrderService {
         orderStatusHistoryRepository.save(history);
 
         List<OrderItem> orderItemsToSave = new ArrayList<>();
+        List<UserInteraction> interactionsToSave = new ArrayList<>();
 
         for (CartItem item : items) {
             ProductSku sku = item.getProductSku();
@@ -151,9 +155,19 @@ public class OrderService {
                     .build();
 
             orderItemsToSave.add(orderItem);
+
+            UserInteraction interaction = UserInteraction.builder()
+                    .user(userRepository.findById(userId).orElseThrow(()-> new WebErrorConfig(ErrorCode.USER_NOT_FOUND)))
+                    .sessionId(cart.getSessionId()) // Có thể null nhưng vẫn lưu
+                    .product(productRepository.findById(sku.getProduct().getId()).orElseThrow(() -> new WebErrorConfig(ErrorCode.PRODUCT_NOT_FOUND)))
+                    .interactionType(UserInteraction.InteractionType.PURCHASE)
+                    .interactionWeight(5.0f) // Mua hàng được 5 điểm trọng số
+                    .build();
+            interactionsToSave.add(interaction);
         }
 
         orderItemRepository.saveAll(orderItemsToSave);
+        userInteractionRepository.saveAll(interactionsToSave);
 
         Payment payment = Payment.builder()
                 .order(order)
@@ -165,7 +179,8 @@ public class OrderService {
 
         paymentRepository.save(payment);
 
-        cartItemRepository.deleteByCartId(cart.getId());
+//        cartItemRepository.deleteByCartId(cart.getId());
+        cartItemRepository.deleteAll(items);
 
         String paymentUrl = null;
 

@@ -63,7 +63,8 @@ public enum ErrorCode {
     DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST(404, "Duplicate attribute value id in request"),
     REVIEW_ALREADY_EXISTED(801, "Review already existed for this order item"),
     REVIEW_NOT_FOUND(802, "Review not found"),
-    INVALID_INTERACTION_TYPE(901, "Invalid interaction type");
+    INVALID_INTERACTION_TYPE(901, "Invalid interaction type"),
+    SELECTED_ITEMS_NOT_FOUND(902, "selected items not found" );
 
     ErrorCode(int code, String message) {
         this.code = code;

@@ -41,7 +41,7 @@ public class CheckoutService {
 
         // 1. Cart
         Cart cart = getCart(userId);
-        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        List<CartItem> items = cartItemRepository.findSelectedItems(cart.getId(), request.getCartItemIds());
 
         if (items.isEmpty()) {
             throw new WebErrorConfig(ErrorCode.CART_IS_EMPTY);

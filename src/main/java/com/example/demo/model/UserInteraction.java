@@ -23,7 +23,7 @@ public class UserInteraction {
     @JoinColumn(name = "user_id") // Nullable cho khách chưa đăng nhập
     User user;
 
-    @Column(name = "session_id", nullable = false, length = 100)
+    @Column(name = "session_id", nullable = true, length = 100)
     String sessionId;
 
     @ManyToOne(fetch = FetchType.LAZY)

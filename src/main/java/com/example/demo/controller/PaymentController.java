@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/payment")
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;

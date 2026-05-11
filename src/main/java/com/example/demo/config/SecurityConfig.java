@@ -58,7 +58,8 @@ public class SecurityConfig {
                 .sessionManagement(sess-> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/logout", "/api/auth/change-password").authenticated()
+                        .requestMatchers("/api/auth/logout", "/api/auth/change-password",
+                                "/api/cart/merge", "/api/cart/detail").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/login/oauth2/**",
@@ -71,8 +72,8 @@ public class SecurityConfig {
                         // Cho phép Guest xem sản phẩm (chỉ GET), POST/PUT/DELETE vẫn cần ADMIN qua @PreAuthorize
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/skus/*/images").permitAll()
                         // VNPAY callbacks: cả return và IPN đều không có JWT token
-                        .requestMatchers("/api/payments/vnpay-return/**").permitAll()
-                        .requestMatchers("/api/payments/vnpay-ipn/**").permitAll()
+                        .requestMatchers("/api/payment/vnpay-return/**").permitAll()
+                        .requestMatchers("/api/payment/vnpay-ipn/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
