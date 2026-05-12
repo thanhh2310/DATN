@@ -10,6 +10,7 @@ import com.example.demo.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -41,6 +42,18 @@ public class OrderController {
                 .code(200)
                 .message("Lấy lịch sử đơn hàng thành công")
                 .data(orderService.getMyOrderHistory(helper.getCurrentUserId(), page, size))
+                .build();
+    }
+
+    @PutMapping("/{orderId}/complete-cod")
+    @PreAuthorize("hasRole('ADMIN')") // Phân quyền chỉ Admin/Nhân viên
+    public ApiResponse<?> completeCodOrder(@PathVariable Integer orderId) {
+        orderService.completeCodOrder(orderId);
+        // (Nhớ lưu vào bảng OrderStatusHistory nữa nhé)
+
+        return ApiResponse.builder()
+                .code(200)
+                .message("Xác nhận đã thu tiền thành công!")
                 .build();
     }
 }

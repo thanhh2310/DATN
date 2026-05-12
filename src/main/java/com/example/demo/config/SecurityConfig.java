@@ -59,7 +59,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/logout", "/api/auth/change-password",
-                                "/api/cart/merge", "/api/cart/detail").authenticated()
+                                "/api/cart/merge").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/login/oauth2/**",

@@ -33,7 +33,7 @@ public class OrderScheduler {
         LocalDateTime deadline = LocalDateTime.now().minusMinutes(15);
 
         // 2. Tìm các đơn hàng thỏa mãn điều kiện
-        List<Order> expiredOrders = orderRepository.findByPaymentStatusAndCreatedAtBefore(
+        List<Order> expiredOrders = orderRepository.findExpiredUnpaidOnlineOrders(
                 Order.PaymentStatus.UNPAID,
                 deadline
         );

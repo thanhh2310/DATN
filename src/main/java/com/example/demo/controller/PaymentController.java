@@ -42,7 +42,7 @@ public class PaymentController {
         if ("00".equals(vnp_ResponseCode)) {
             // 👉 Gọi hàm xử lý thành công
             orderService.handlePaymentResult(orderId, true, vnp_TransactionNo);
-
+            orderService.confirmPaymentSuccess(orderId, vnp_TransactionNo);
             return ApiResponse.<String>builder()
                     .code(200)
                     .message("Thanh toán thành công! Đơn hàng #" + orderId + " đã được xác nhận.")

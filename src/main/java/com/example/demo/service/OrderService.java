@@ -348,5 +348,54 @@ public class OrderService {
                 .build();
     }
 
+    public void completeCodOrder(Integer orderId){
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
 
+        // Kiểm tra xem đúng là đơn CASH không
+        if (!"CASH".equalsIgnoreCase(order.getPaymentMethod().getCode())) {
+            throw new RuntimeException("Chỉ áp dụng cho đơn thanh toán tiền mặt!");
+        }
+
+        // Đổi trạng thái khi giao hàng thành công
+        order.setOrderStatus(Order.OrderStatus.DELIVERED); // Giao xong
+        order.setPaymentStatus(Order.PaymentStatus.PAID);  // Đã nhận được tiền
+        orderRepository.save(order);
+
+        OrderStatusHistory history = OrderStatusHistory.builder()
+                .order(order)
+                .status(Order.OrderStatus.PROCESSING.name())
+                .notes("Khách hàng đã thanh toán thành công qua VNPAY")
+                .build();
+        orderStatusHistoryRepository.save(history);
+    }
+
+    @Transactional
+    public void confirmPaymentSuccess(Integer orderId, String transactionNo) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getPaymentStatus() == Order.PaymentStatus.UNPAID) {
+            // 1. Đổi trạng thái Order
+            order.setPaymentStatus(Order.PaymentStatus.PAID);
+            order.setOrderStatus(Order.OrderStatus.PROCESSING);
+            orderRepository.save(order);
+
+            // 2. CẬP NHẬT BẢNG PAYMENT (Rất quan trọng)
+            Payment payment = paymentRepository.findByOrderId(orderId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin thanh toán"));
+
+            payment.setStatus(Order.PaymentStatus.PAID.name());
+            payment.setTransactionId(transactionNo); // Lưu lại mã giao dịch của VNPAY
+            paymentRepository.save(payment);
+
+            // 3. Ghi lại lịch sử
+            OrderStatusHistory history = OrderStatusHistory.builder()
+                    .order(order)
+                    .status(Order.OrderStatus.PROCESSING.name())
+                    .notes("Đã thanh toán qua VNPAY. Mã GD: " + transactionNo)
+                    .build();
+            orderStatusHistoryRepository.save(history);
+        }
+    }
 }
