@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.Enum.ErrorCode;
 import com.example.demo.Enum.RoleName;
+import com.example.demo.auth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.demo.auth.JwtUtils;
 import com.example.demo.config.WebErrorConfig;
 import com.example.demo.model.Cart;
@@ -34,6 +35,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     private final CartRepository cartRepository;
     private final RedisService redisService;
     private final JwtUtils jwtUtils;
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -43,6 +45,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                                         HttpServletResponse response,
                                         Authentication authentication)
             throws IOException, ServletException {
+        httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
         String firstName = oAuth2User.getAttribute("given_name");

@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.auth.HttpCookieOAuth2AuthorizationRequestRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginFailureHandler extends SimpleUrlAuthenticationFailureHandler {
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -24,6 +26,7 @@ public class OAuth2LoginFailureHandler extends SimpleUrlAuthenticationFailureHan
                                         HttpServletResponse response,
                                         AuthenticationException exception)
             throws IOException, ServletException {
+        httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
         String errorCode = exception.getMessage() != null ? exception.getMessage() : "oauth2_login_failed";
 
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/")

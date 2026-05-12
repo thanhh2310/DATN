@@ -1,5 +1,6 @@
 package com.example.demo.config;
 
+import com.example.demo.auth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.demo.auth.JwtAuthenticationFilter;
 import com.example.demo.auth.JwtUtils;
 import com.example.demo.service.OAuth2LoginFailureHandler;
@@ -31,6 +32,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -80,7 +82,11 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
 //                .formLogin(Customizer.withDefaults())
-                .oauth2Login(oauth2-> oauth2
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                // Kéo Spring khỏi việc dùng Session mặc định
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository)
+                        )
                         .successHandler(oAuth2LoginSuccessHandler)
                         .failureHandler(oAuth2LoginFailureHandler)
                 )
