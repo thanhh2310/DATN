@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.Enum.ErrorCode;
+import com.example.demo.Enum.RoleName;
 import com.example.demo.config.WebErrorConfig;
 import com.example.demo.dto.request.UpdateProfileRequest;
 import com.example.demo.dto.request.UserCreationRequest;
@@ -9,7 +10,12 @@ import com.example.demo.dto.response.PageResponse;
 import com.example.demo.dto.response.ProfileResponse;
 import com.example.demo.dto.response.UserResponse;
 import com.example.demo.mapper.UserMapper;
+import com.example.demo.model.Cart;
+import com.example.demo.model.Role;
 import com.example.demo.model.User;
+import com.example.demo.model.UserRole;
+import com.example.demo.repository.CartRepository;
+import com.example.demo.repository.RoleRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +29,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,6 +37,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final CartRepository cartRepository;
     private final UserMapper userMapper;
     private final RedisService redisService;
 
@@ -127,5 +136,36 @@ public class UserService implements UserDetailsService {
         }
 
         redisService.deleteAllRefreshTokensOfUser(user.getEmail());
+    }
+
+    @Transactional
+    public User processOAuth2PostLogin(String email, String firstName, String lastName) {
+        return userRepository.findByEmail(email).orElseGet(() -> {
+            Role userRole = roleRepository.findByName(RoleName.ROLE_USER.name())
+                    .orElseThrow(() -> new WebErrorConfig(ErrorCode.ROLE_NOT_FOUND));
+
+            User newUser = User.builder()
+                    .email(email)
+                    .firstName(firstName)
+                    .lastName(lastName)
+                    .isActive(true)
+                    .passwordHash("")
+                    .userRoles(new HashSet<>())
+                    .build();
+
+            UserRole mapping = UserRole.builder()
+                    .user(newUser)
+                    .role(userRole)
+                    .build();
+
+            newUser.getUserRoles().add(mapping);
+
+            User savedUser = userRepository.save(newUser);
+
+            // Tạo Cart
+            cartRepository.save(Cart.builder().user(savedUser).build());
+
+            return savedUser;
+        });
     }
 }

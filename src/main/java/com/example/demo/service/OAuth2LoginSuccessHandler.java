@@ -1,21 +1,13 @@
 package com.example.demo.service;
 
-import com.example.demo.Enum.ErrorCode;
-import com.example.demo.Enum.RoleName;
 import com.example.demo.auth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.example.demo.auth.JwtUtils;
-import com.example.demo.config.WebErrorConfig;
-import com.example.demo.model.Cart;
-import com.example.demo.model.Role;
 import com.example.demo.model.User;
-import com.example.demo.model.UserRole;
-import com.example.demo.repository.CartRepository;
-import com.example.demo.repository.RoleRepository;
-import com.example.demo.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -24,15 +16,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final CartRepository cartRepository;
+    private final UserService userService;
     private final RedisService redisService;
     private final JwtUtils jwtUtils;
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
@@ -51,43 +40,20 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String firstName = oAuth2User.getAttribute("given_name");
         String lastName = oAuth2User.getAttribute("family_name");
 
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
-            Role userRole = roleRepository.findByName(RoleName.ROLE_USER.name())
-                    .orElseThrow(() -> new WebErrorConfig(ErrorCode.ROLE_NOT_FOUND));
+        log.info("Bắt đầu xử lý đăng nhập OAuth2 thành công cho email: {}", email);
 
-            User newUser = User.builder()
-                    .email(email)
-                    .firstName(firstName)
-                    .lastName(lastName)
-                    .isActive(true)
-                    .passwordHash("")
-                    .userRoles(new HashSet<>())
-                    .build();
-
-            UserRole mapping = UserRole.builder()
-                    .user(newUser)
-                    .role(userRole)
-                    .build();
-
-            newUser.getUserRoles().add(mapping);
-
-            User savedUser = userRepository.save(newUser);
-
-            // Tạo Cart cho User mới đăng ký qua Google
-            cartRepository.save(Cart.builder().user(savedUser).build());
-
-            return savedUser;
-        });
+        User user = userService.processOAuth2PostLogin(email, firstName, lastName);
 
         // KIỂM TRA isActive — chặn user bị khóa đăng nhập
         if (!Boolean.TRUE.equals(user.getIsActive())) {
+            log.warn("Tài khoản {} đang bị khóa. Từ chối cho phép đăng nhập.", email);
             String errorUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/login")
                     .queryParam("error", "account_disabled")
                     .build().toUriString();
             getRedirectStrategy().sendRedirect(request, response, errorUrl);
             return;
         }
-
+        log.debug("Tiến hành khởi tạo JWT và lưu Refresh Token vào Redis cho user: {}", email);
         String accessToken = jwtUtils.generateAccessToken(user);
         String refreshToken = jwtUtils.generateRefreshToken(user);
 
@@ -95,11 +61,11 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         // Redirect về Frontend dùng URL Fragment (#) thay vì query param
         // Giúp token KHÔNG bị gửi lên server khi FE load lại trang, tăng bảo mật
-        // URL sẽ dạng: http://localhost:3000/oauth-redirect#access_token=xyz&refresh_token=abc
-        String targetUrl = frontendUrl + "/oauth-redirect#" +
+        // URL sẽ dạng: http://localhost:5173/oauth-redirect#access_token=xyz&refresh_token=abc
+        String targetUrl = frontendUrl + "/oauth-redirect?" +
                 "access_token=" + accessToken +
                 "&refresh_token=" + refreshToken;
-
+        log.info("Hoàn tất quy trình OAuth2. Đang chuyển hướng {} về Frontend.", email);
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }
