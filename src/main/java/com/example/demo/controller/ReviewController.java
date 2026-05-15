@@ -4,12 +4,11 @@ import com.example.demo.dto.request.ReviewRequest;
 import com.example.demo.dto.response.ApiResponse;
 import com.example.demo.dto.response.PageResponse;
 import com.example.demo.dto.response.ReviewResponse;
+import com.example.demo.service.Helper;
 import com.example.demo.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,14 +17,14 @@ import org.springframework.web.bind.annotation.*;
 public class ReviewController {
 
     private final ReviewService reviewService;
+    private final Helper helper;
 
     @PostMapping
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<ReviewResponse> createReview(
-            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ReviewRequest request
     ) {
-        Integer userId = getCurrentUserId(userDetails);
+        Integer userId = helper.getCurrentUserId();
         ReviewResponse response = reviewService.createReview(userId, request);
 
         return ApiResponse.<ReviewResponse>builder()
@@ -53,11 +52,10 @@ public class ReviewController {
     @GetMapping("/my-reviews")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<PageResponse<ReviewResponse>> getMyReviews(
-            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Integer userId = getCurrentUserId(userDetails);
+        Integer userId = helper.getCurrentUserId();
         PageResponse<ReviewResponse> response = reviewService.getMyReviews(userId, page, size);
 
         return ApiResponse.<PageResponse<ReviewResponse>>builder()
@@ -84,10 +82,9 @@ public class ReviewController {
     @DeleteMapping("/{reviewId}")
     @PreAuthorize("isAuthenticated()")
     public ApiResponse<String> deleteReview(
-            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Integer reviewId
     ) {
-        Integer userId = getCurrentUserId(userDetails);
+        Integer userId = helper.getCurrentUserId();
         reviewService.deleteReview(userId, reviewId);
 
         return ApiResponse.<String>builder()
@@ -123,7 +120,4 @@ public class ReviewController {
                 .build();
     }
 
-    private Integer getCurrentUserId(UserDetails userDetails) {
-        return ((com.example.demo.model.User) userDetails).getId();
-    }
 }

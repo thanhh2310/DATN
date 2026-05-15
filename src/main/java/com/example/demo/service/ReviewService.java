@@ -17,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,11 +118,25 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.REVIEW_NOT_FOUND));
 
-        if (!review.getUser().getId().equals(userId)) {
+        if (!review.getUser().getId().equals(userId) && !hasRoleAdmin()) {
             throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
         }
 
         reviewRepository.delete(review);
+    }
+
+    private boolean hasRoleAdmin() {
+        // Lấy thông tin đăng nhập hiện tại
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Nếu chưa đăng nhập hoặc không có thông tin
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+
+        // Duyệt qua danh sách quyền xem có ROLE_ADMIN không
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
     }
 
     @Transactional(readOnly = true)
