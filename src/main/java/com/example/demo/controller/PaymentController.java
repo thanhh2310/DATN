@@ -4,12 +4,14 @@ import com.example.demo.dto.response.ApiResponse;
 import com.example.demo.model.Order;
 import com.example.demo.service.OrderService;
 import com.example.demo.service.PaymentService;
+import com.example.demo.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +21,7 @@ import java.util.Map;
 public class PaymentController {
     private final PaymentService paymentService;
     private final OrderService orderService;
+    private final WalletService walletService;
 
     @GetMapping("/vnpay-return")
     public ApiResponse<String> vnpayReturn(@RequestParam Map<String, String> allParams) {
@@ -35,14 +38,28 @@ public class PaymentController {
         // 2. Lấy thông tin giao dịch
         String vnp_ResponseCode = allParams.get("vnp_ResponseCode");
         String vnp_TransactionNo = allParams.get("vnp_TransactionNo"); // Mã GD trên hệ thống VNPAY
-        String orderIdStr = allParams.get("vnp_TxnRef");
-        Integer orderId = Integer.parseInt(orderIdStr);
+        String txnRef = allParams.get("vnp_TxnRef");
 
         // 3. Xử lý kết quả
+        if (walletService.isWalletDepositRef(txnRef)) {
+            walletService.completeDeposit(txnRef, "00".equals(vnp_ResponseCode), vnp_TransactionNo);
+            if ("00".equals(vnp_ResponseCode)) {
+                return ApiResponse.<String>builder()
+                        .code(200)
+                        .message("Nạp tiền vào ví thành công!")
+                        .build();
+            }
+
+            return ApiResponse.<String>builder()
+                    .code(402)
+                    .message("Nạp tiền vào ví thất bại hoặc bị hủy bỏ. Mã lỗi: " + vnp_ResponseCode)
+                    .build();
+        }
+
+        Integer orderId = parseOrderId(txnRef);
         if ("00".equals(vnp_ResponseCode)) {
             // 👉 Gọi hàm xử lý thành công
             orderService.handlePaymentResult(orderId, true, vnp_TransactionNo);
-            orderService.confirmPaymentSuccess(orderId, vnp_TransactionNo);
             return ApiResponse.<String>builder()
                     .code(200)
                     .message("Thanh toán thành công! Đơn hàng #" + orderId + " đã được xác nhận.")
@@ -79,7 +96,25 @@ public class PaymentController {
             String vnp_ResponseCode = allParams.get("vnp_ResponseCode");
             String vnp_TransactionNo = allParams.get("vnp_TransactionNo");
             String vnp_Amount = allParams.get("vnp_Amount");
-            Integer orderId = Integer.parseInt(allParams.get("vnp_TxnRef"));
+            String txnRef = allParams.get("vnp_TxnRef");
+
+            if (walletService.isWalletDepositRef(txnRef)) {
+                BigDecimal amountFromVnPay = new BigDecimal(vnp_Amount).divide(BigDecimal.valueOf(100));
+                BigDecimal amountFromDb = walletService.getPendingDepositAmount(txnRef);
+
+                if (amountFromVnPay.compareTo(amountFromDb) != 0) {
+                    response.put("RspCode", "04");
+                    response.put("Message", "Invalid Amount");
+                    return response;
+                }
+
+                walletService.completeDeposit(txnRef, "00".equals(vnp_ResponseCode), vnp_TransactionNo);
+                response.put("RspCode", "00");
+                response.put("Message", "Confirm Success");
+                return response;
+            }
+
+            Integer orderId = parseOrderId(txnRef);
 
             // 2. Tìm đơn hàng trong Database
             // Lưu ý: Bạn cần tạo thêm hàm getOrderById trong OrderService nhé
@@ -127,5 +162,12 @@ public class PaymentController {
         }
 
         return response;
+    }
+
+    private Integer parseOrderId(String txnRef) {
+        if (txnRef != null && txnRef.startsWith("ORDER_")) {
+            return Integer.parseInt(txnRef.substring("ORDER_".length()));
+        }
+        return Integer.parseInt(txnRef);
     }
 }

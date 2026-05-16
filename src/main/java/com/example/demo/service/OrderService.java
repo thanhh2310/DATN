@@ -45,6 +45,7 @@ public class OrderService {
 
     private final CouponService couponService;
     private final PaymentService paymentService;
+    private final WalletService walletService;
     private final UserInteractionService userInteractionService;
     private final Helper helper;
 
@@ -191,6 +192,22 @@ public class OrderService {
 
             // Gọi PaymentService để tạo URL. (Ép kiểu BigDecimal về int vì VNPAY yêu cầu số nguyên)
             paymentUrl = paymentService.createVnPayPayment(order.getId(), total.intValue(), orderInfo, req);
+        } else if ("WALLET".equalsIgnoreCase(paymentMethod.getCode())) {
+            walletService.payOrder(userId, order);
+
+            order.setPaymentStatus(Order.PaymentStatus.PAID);
+            order.setOrderStatus(Order.OrderStatus.PROCESSING);
+            orderRepository.save(order);
+
+            payment.setStatus(Order.PaymentStatus.PAID.name());
+            paymentRepository.save(payment);
+
+            OrderStatusHistory paidHistory = OrderStatusHistory.builder()
+                    .order(order)
+                    .status(Order.OrderStatus.PROCESSING.name())
+                    .notes("Khách hàng đã thanh toán đơn hàng bằng ví")
+                    .build();
+            orderStatusHistoryRepository.save(paidHistory);
         }
 
         return OrderResponse.builder()
@@ -365,37 +382,54 @@ public class OrderService {
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(order)
                 .status(Order.OrderStatus.PROCESSING.name())
-                .notes("Khách hàng đã thanh toán thành công qua VNPAY")
+                .notes("Khách hàng đã thanh toán bằng Tiền mặt (COD) thành công")
                 .build();
         orderStatusHistoryRepository.save(history);
     }
 
     @Transactional
-    public void confirmPaymentSuccess(Integer orderId, String transactionNo) {
+    public void refundOrderToWallet(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
+        String paymentCode = order.getPaymentMethod().getCode().toUpperCase();
 
-        if (order.getPaymentStatus() == Order.PaymentStatus.UNPAID) {
-            // 1. Đổi trạng thái Order
-            order.setPaymentStatus(Order.PaymentStatus.PAID);
-            order.setOrderStatus(Order.OrderStatus.PROCESSING);
-            orderRepository.save(order);
-
-            // 2. CẬP NHẬT BẢNG PAYMENT (Rất quan trọng)
-            Payment payment = paymentRepository.findByOrderId(orderId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin thanh toán"));
-
-            payment.setStatus(Order.PaymentStatus.PAID.name());
-            payment.setTransactionId(transactionNo); // Lưu lại mã giao dịch của VNPAY
-            paymentRepository.save(payment);
-
-            // 3. Ghi lại lịch sử
-            OrderStatusHistory history = OrderStatusHistory.builder()
-                    .order(order)
-                    .status(Order.OrderStatus.PROCESSING.name())
-                    .notes("Đã thanh toán qua VNPAY. Mã GD: " + transactionNo)
-                    .build();
-            orderStatusHistoryRepository.save(history);
+        if ("VNPAY".equals(paymentCode) || "WALLET".equals(paymentCode)) {
+            if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
+                walletService.refundOrder(order, "Hoàn tiền đơn hàng #" + order.getId() + " vào ví");
+                order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
+            }
         }
+
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+        for (OrderItem item : orderItems) {
+            skuRepository.incrementStock(item.getProductSku().getId(), item.getQuantity());
+        }
+
+        if (order.getCoupon() != null) {
+            Coupon coupon = order.getCoupon();
+            if (coupon.getUsedCount() > 0) {
+                coupon.setUsedCount(coupon.getUsedCount() - 1);
+                couponRepository.save(coupon);
+            }
+        }
+
+        order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
+        order.setOrderStatus(Order.OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        if (payment != null) {
+            payment.setStatus(Order.PaymentStatus.REFUNDED.name());
+            paymentRepository.save(payment);
+        }
+
+        OrderStatusHistory history = OrderStatusHistory.builder()
+                .order(order)
+                .status(Order.OrderStatus.CANCELLED.name())
+                .notes("Đơn hàng đã được hoàn tiền vào ví")
+                .build();
+        orderStatusHistoryRepository.save(history);
     }
+
+
 }

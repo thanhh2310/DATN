@@ -1,9 +1,11 @@
 package com.example.demo.config;
 
 import com.example.demo.Enum.RoleName;
+import com.example.demo.model.PaymentMethod;
 import com.example.demo.model.Role;
 import com.example.demo.model.User;
 import com.example.demo.model.UserRole;
+import com.example.demo.repository.PaymentMethodRepository;
 import com.example.demo.repository.RoleRepository;
 import com.example.demo.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
@@ -24,12 +26,14 @@ import java.util.stream.Collectors;
 public class InitConfig {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
     private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
     @Transactional
     public void init() {
         initRoles();
+        initPaymentMethods();
         initAdminAccount();
     }
 
@@ -91,6 +95,23 @@ public class InitConfig {
             log.info("INIT: Created Admin account (admin@admin.com / admin123)");
         } else {
             log.info("INIT: Admin account already exists");
+        }
+    }
+
+    private void initPaymentMethods() {
+        createPaymentMethodIfAbsent("CASH", "Thanh toán khi nhận hàng");
+        createPaymentMethodIfAbsent("VNPAY", "Thanh toán VNPAY");
+        createPaymentMethodIfAbsent("WALLET", "Thanh toán bằng ví");
+    }
+
+    private void createPaymentMethodIfAbsent(String code, String name) {
+        if (!paymentMethodRepository.existsByCode(code)) {
+            paymentMethodRepository.save(PaymentMethod.builder()
+                    .code(code)
+                    .name(name)
+                    .isActive(true)
+                    .build());
+            log.info("INIT: Created payment method {}", code);
         }
     }
 }

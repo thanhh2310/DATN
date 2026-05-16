@@ -4,22 +4,28 @@ import com.example.demo.config.VnPayConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
 public class PaymentService {
     public String createVnPayPayment(Integer orderId, int amount, String orderInfo, HttpServletRequest req) {
+        return createVnPayPayment("ORDER_" + orderId, BigDecimal.valueOf(amount), orderInfo, req);
+    }
+
+    public String createVnPayPayment(String txnRef, BigDecimal amount, String orderInfo, HttpServletRequest req) {
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
-        String vnp_TxnRef = String.valueOf(orderId); // Mã tham chiếu giao dịch (Unique)
+        String vnp_TxnRef = txnRef; // Mã tham chiếu giao dịch (Unique)
         String vnp_IpAddr = VnPayConfig.getIpAddress(req);
         String vnp_TmnCode = VnPayConfig.vnp_TmnCode;
 
         // Số tiền (VNPay yêu cầu nhân 100)
-        int amountVal = amount * 100;
+        long amountVal = amount.multiply(BigDecimal.valueOf(100)).longValue();
 
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", vnp_Version);
@@ -34,7 +40,7 @@ public class PaymentService {
         vnp_Params.put("vnp_ReturnUrl", VnPayConfig.vnp_ReturnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone(ZoneId.of("Asia/Ho_Chi_Minh")));
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);

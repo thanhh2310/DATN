@@ -65,7 +65,15 @@ public enum ErrorCode {
     REVIEW_NOT_FOUND(802, "Review not found"),
     INVALID_INTERACTION_TYPE(901, "Invalid interaction type"),
     SELECTED_ITEMS_NOT_FOUND(902, "selected items not found" ),
-    ORDER_NOT_FOUND(903,"Order not found" );
+    ORDER_NOT_FOUND(903,"Order not found" ),
+    WALLET_NOT_FOUND(904, "Wallet not found"),
+    WALLET_INACTIVE(905, "Wallet inactive"),
+    INSUFFICIENT_WALLET_BALANCE(906, "Insufficient wallet balance"),
+    INVALID_WALLET_AMOUNT(907, "Invalid wallet amount"),
+    WALLET_TRANSACTION_NOT_FOUND(908, "Wallet transaction not found"),
+    WALLET_TRANSACTION_ALREADY_PROCESSED(909, "Wallet transaction already processed"),
+    ORDER_ALREADY_REFUNDED(910, "Order already refunded"),
+    ORDER_NOT_PAID(911, "Order not paid");
 
     ErrorCode(int code, String message) {
         this.code = code;

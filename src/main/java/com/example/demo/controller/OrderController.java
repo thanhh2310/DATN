@@ -56,4 +56,15 @@ public class OrderController {
                 .message("Xác nhận đã thu tiền thành công!")
                 .build();
     }
+
+    @PutMapping("/{orderId}/refund-wallet")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<?> refundOrderToWallet(@PathVariable Integer orderId) {
+        orderService.refundOrderToWallet(orderId);
+
+        return ApiResponse.builder()
+                .code(200)
+                .message("Hoàn tiền đơn hàng vào ví thành công")
+                .build();
+    }
 }
