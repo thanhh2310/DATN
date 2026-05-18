@@ -29,6 +29,8 @@ public class OrderHistoryResponse {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class OrderItemPreviewResponse {
         Integer skuId;
+        Integer orderItemId;
+        Integer productId;
         String productName;
         String imageUrl;
         Integer quantity;

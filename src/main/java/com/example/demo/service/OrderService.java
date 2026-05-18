@@ -339,6 +339,8 @@ public class OrderService {
                     .stream()
                     .map(item -> OrderHistoryResponse.OrderItemPreviewResponse.builder()
                             .skuId(item.getProductSku().getId())
+                            .orderItemId(item.getId())
+                            .productId(item.getProductSku().getProduct().getId())
                             .productName(item.getProductSku().getProduct().getName())
                             .imageUrl(helper.resolveSkuImage(item.getProductSku()))
                             .quantity(item.getQuantity())

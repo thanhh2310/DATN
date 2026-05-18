@@ -1,12 +1,15 @@
 package com.example.demo.repository;
 
 import com.example.demo.model.Order;
+import com.example.demo.projection.DailyRevenueProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,4 +23,30 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             @Param("status") Order.PaymentStatus status,
             @Param("deadline") LocalDateTime deadline
     );
+
+    // Lấy tổng doanh thu toàn hệ thống
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.paymentStatus = 'PAID' AND o.orderStatus != 'CANCELLED'")
+    BigDecimal calculateTotalRevenue();
+
+    // Đếm số đơn hàng theo trạng thái
+    long countByOrderStatus(Order.OrderStatus status);
+
+    // Đếm tổng số đơn thành công
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus != 'CANCELLED'")
+    long countTotalValidOrders();
+
+    // Lấy doanh thu theo từng ngày (Dùng Native Query cho dễ xử lý Date)
+    @Query(value = """
+        SELECT 
+            CAST(created_at AS DATE) AS reportDate,
+            COUNT(id) AS totalOrders,
+            COALESCE(SUM(total_amount), 0) AS totalRevenue
+        FROM orders
+        WHERE payment_status = 'PAID' 
+          AND order_status != 'CANCELLED'
+          AND created_at >= :startDate
+        GROUP BY CAST(created_at AS DATE)
+        ORDER BY reportDate ASC
+    """, nativeQuery = true)
+    List<DailyRevenueProjection> getDailyRevenue(@Param("startDate") LocalDate startDate);
 }
