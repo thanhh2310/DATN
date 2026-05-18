@@ -58,6 +58,8 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .phoneNumber(user.getPhoneNumber())
+                .weight(user.getWeight())
+                .height(user.getHeight())
                 .build();
     }
 
@@ -65,6 +67,8 @@ public class UserMapper {
         if(request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if(request.getLastName() != null) user.setLastName(request.getLastName());
         if(request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
+        if(request.getWeight() != null) user.setWeight(request.getWeight());
+        if(request.getHeight() != null) user.setHeight(request.getHeight());
         // Lưu ý: Thường không cho user tự đổi email ở profile đơn giản vì liên quan đến login
     }
 

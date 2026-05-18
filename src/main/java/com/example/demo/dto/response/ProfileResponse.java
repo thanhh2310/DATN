@@ -13,5 +13,6 @@ public class ProfileResponse {
     String firstName;
     String lastName;
     String phoneNumber;
-
+    Double height;
+    Double weight;
 }

@@ -15,4 +15,7 @@ public class UpdateProfileRequest {
 
     @Pattern(regexp = "^\\d{10,11}$", message = "Phone number must be 10-11 digits")
     String phoneNumber;
+
+    Double height;
+    Double weight;
 }
