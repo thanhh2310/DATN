@@ -5,13 +5,16 @@ import com.example.demo.config.WebErrorConfig;
 import com.example.demo.dto.request.ReviewRequest;
 import com.example.demo.dto.response.PageResponse;
 import com.example.demo.dto.response.ReviewResponse;
+import com.example.demo.dto.response.SkuAttributeResponse;
 import com.example.demo.model.Order;
 import com.example.demo.model.OrderItem;
 import com.example.demo.model.Product;
+import com.example.demo.model.ProductSku;
 import com.example.demo.model.Review;
 import com.example.demo.repository.OrderItemRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.repository.ReviewRepository;
+import com.example.demo.service.Helper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +32,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
+    private final Helper helper;
 
     @Transactional
     public ReviewResponse createReview(Integer userId, ReviewRequest request) {
@@ -151,16 +155,53 @@ public class ReviewService {
     }
 
     private ReviewResponse mapToReviewResponse(Review review) {
+        ProductSku sku = review.getOrderItem() != null ? review.getOrderItem().getProductSku() : null;
+        Product product = review.getProduct();
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .userId(review.getUser().getId())
                 .userName(review.getUser().getFirstName() + " " + review.getUser().getLastName())
-                .productId(review.getProduct().getId())
+                .productId(product.getId())
+                .productName(product.getName())
+                .productSlug(product.getSlug())
+                .productImage(resolveProductImage(product))
                 .orderItemId(review.getOrderItem() != null ? review.getOrderItem().getId() : null)
+                .skuId(sku != null ? sku.getId() : null)
+                .skuCode(sku != null ? sku.getSkuCode() : null)
+                .skuPrice(sku != null ? sku.getPrice() : null)
+                .skuImage(sku != null ? helper.resolveSkuImage(sku) : null)
+                .skuAttributes(sku != null && sku.getSkuValues() != null
+                        ? sku.getSkuValues().stream()
+                        .map(skuValue -> {
+                            var attrVal = skuValue.getAttributeValue();
+                            var attr = attrVal.getAttribute();
+                            return SkuAttributeResponse.builder()
+                                    .attributeId(attr.getId())
+                                    .attributeName(attr.getName())
+                                    .valueId(attrVal.getId())
+                                    .valueName(attrVal.getValue())
+                                    .description(attrVal.getDescription())
+                                    .build();
+                        })
+                        .toList()
+                        : java.util.List.of())
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .isApproved(review.getIsApproved())
                 .createdAt(review.getCreatedAt())
                 .build();
+    }
+
+    private String resolveProductImage(Product product) {
+        if (product.getImages() == null || product.getImages().isEmpty()) {
+            return null;
+        }
+
+        return product.getImages().stream()
+                .filter(image -> Boolean.TRUE.equals(image.getIsThumbnail()))
+                .findFirst()
+                .orElse(product.getImages().iterator().next())
+                .getImageUrl();
     }
 }

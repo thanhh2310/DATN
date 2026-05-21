@@ -69,6 +69,7 @@ public class WishlistService {
     /**
      * Lấy danh sách wishlist của user (có phân trang)
      */
+    @Transactional(readOnly = true)
     public PageResponse<WishlistResponse> getWishlist(Integer userId, int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by("createdAt").descending());
         Page<Wishlist> wishlistPage = wishlistRepository.findByUserId(userId, pageable);

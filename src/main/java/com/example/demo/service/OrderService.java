@@ -133,7 +133,6 @@ public class OrderService {
         orderStatusHistoryRepository.save(history);
 
         List<OrderItem> orderItemsToSave = new ArrayList<>();
-        List<UserInteraction> interactionsToSave = new ArrayList<>();
 
         for (CartItem item : items) {
             ProductSku sku = item.getProductSku();
@@ -156,19 +155,9 @@ public class OrderService {
                     .build();
 
             orderItemsToSave.add(orderItem);
-
-            UserInteraction interaction = UserInteraction.builder()
-                    .user(userRepository.findById(userId).orElseThrow(()-> new WebErrorConfig(ErrorCode.USER_NOT_FOUND)))
-                    .sessionId(cart.getSessionId()) // Có thể null nhưng vẫn lưu
-                    .product(productRepository.findById(sku.getProduct().getId()).orElseThrow(() -> new WebErrorConfig(ErrorCode.PRODUCT_NOT_FOUND)))
-                    .interactionType(UserInteraction.InteractionType.PURCHASE)
-                    .interactionWeight(5.0f) // Mua hàng được 5 điểm trọng số
-                    .build();
-            interactionsToSave.add(interaction);
         }
 
         orderItemRepository.saveAll(orderItemsToSave);
-        userInteractionRepository.saveAll(interactionsToSave);
 
         Payment payment = Payment.builder()
                 .order(order)
@@ -181,7 +170,9 @@ public class OrderService {
         paymentRepository.save(payment);
 
 //        cartItemRepository.deleteByCartId(cart.getId());
-        cartItemRepository.deleteAll(items);
+        if (!"VNPAY".equalsIgnoreCase(paymentMethod.getCode())) {
+            cartItemRepository.deleteAll(items);
+        }
 
         String paymentUrl = null;
 
@@ -196,7 +187,6 @@ public class OrderService {
             walletService.payOrder(userId, order);
 
             order.setPaymentStatus(Order.PaymentStatus.PAID);
-            order.setOrderStatus(Order.OrderStatus.PROCESSING);
             orderRepository.save(order);
 
             payment.setStatus(Order.PaymentStatus.PAID.name());
@@ -204,10 +194,12 @@ public class OrderService {
 
             OrderStatusHistory paidHistory = OrderStatusHistory.builder()
                     .order(order)
-                    .status(Order.OrderStatus.PROCESSING.name())
-                    .notes("Khách hàng đã thanh toán đơn hàng bằng ví")
+                    .status(Order.OrderStatus.PENDING.name())
+                    .notes("Khách hàng đã thanh toán đơn hàng bằng ví. Chờ admin xác nhận đơn hàng.")
                     .build();
             orderStatusHistoryRepository.save(paidHistory);
+
+            trackPurchaseForOrder(order);
         }
 
         return OrderResponse.builder()
@@ -258,7 +250,6 @@ public class OrderService {
         if (isSuccess) {
             // ================= THANH TOÁN THÀNH CÔNG =================
             order.setPaymentStatus(Order.PaymentStatus.PAID);
-            order.setOrderStatus(Order.OrderStatus.PROCESSING);
 
             if (existingPayment != null) {
                 existingPayment.setStatus(Order.PaymentStatus.PAID.name());
@@ -266,14 +257,7 @@ public class OrderService {
                 paymentRepository.save(existingPayment);
             }
 
-            // Track PURCHASE interaction cho từng sản phẩm trong đơn
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
-            for (OrderItem item : orderItems) {
-                userInteractionService.trackPurchase(
-                        order.getUser().getId(),
-                        item.getProductSku().getProduct().getId()
-                );
-            }
+            trackPurchaseForOrder(order);
 
         } else {
             // ================= THANH TOÁN THẤT BẠI (ROLLBACK) =================
@@ -305,7 +289,7 @@ public class OrderService {
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(order)
                 .status(order.getOrderStatus().name())
-                .notes(isSuccess ? "Khách hàng đã thanh toán thành công qua VNPAY" : "Khách hàng hủy/thanh toán VNPAY thất bại. Hệ thống đã hủy đơn và hoàn lại tồn kho.")
+                .notes(isSuccess ? "Khách hàng đã thanh toán thành công qua VNPAY. Chờ admin xác nhận đơn hàng." : "Khách hàng hủy/thanh toán VNPAY thất bại. Hệ thống đã hủy đơn và hoàn lại tồn kho.")
                 .build();
         orderStatusHistoryRepository.save(history);
     }
@@ -367,41 +351,99 @@ public class OrderService {
                 .build();
     }
 
-    public void completeCodOrder(Integer orderId){
+    @Transactional
+    public void deliverOrder(Integer orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
 
-        // Kiểm tra xem đúng là đơn CASH không
-        if (!"CASH".equalsIgnoreCase(order.getPaymentMethod().getCode())) {
-            throw new RuntimeException("Chỉ áp dụng cho đơn thanh toán tiền mặt!");
+        if (order.getOrderStatus() != Order.OrderStatus.SHIPPED) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ORDER_STATUS);
         }
 
-        // Đổi trạng thái khi giao hàng thành công
-        order.setOrderStatus(Order.OrderStatus.DELIVERED); // Giao xong
-        order.setPaymentStatus(Order.PaymentStatus.PAID);  // Đã nhận được tiền
+        // Đổi trạng thái giao hàng
+        order.setOrderStatus(Order.OrderStatus.DELIVERED);
+
+        String noteMessage = "Đơn hàng đã được giao thành công.";
+
+        // Xử lý riêng cho đơn Tiền mặt (Thu tiền hộ)
+        if ("CASH".equalsIgnoreCase(order.getPaymentMethod().getCode())) {
+            order.setPaymentStatus(Order.PaymentStatus.PAID);
+            noteMessage = "Giao hàng thành công. Đã thu tiền mặt (COD).";
+
+            // Cập nhật cả bảng Payment nếu bạn có tracking
+            Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+            if (payment != null) {
+                payment.setStatus(Order.PaymentStatus.PAID.name());
+                paymentRepository.save(payment);
+            }
+            trackPurchaseForOrder(order);
+        }
+
         orderRepository.save(order);
 
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(order)
-                .status(Order.OrderStatus.PROCESSING.name())
-                .notes("Khách hàng đã thanh toán bằng Tiền mặt (COD) thành công")
+                .status(Order.OrderStatus.DELIVERED.name())
+                .notes(noteMessage)
                 .build();
         orderStatusHistoryRepository.save(history);
     }
 
     @Transactional
-    public void refundOrderToWallet(Integer orderId) {
+    public void cancelOrder(Integer orderId, Integer currentUserId, boolean isAdmin) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
-        String paymentCode = order.getPaymentMethod().getCode().toUpperCase();
 
-        if ("VNPAY".equals(paymentCode) || "WALLET".equals(paymentCode)) {
-            if (order.getPaymentStatus() == Order.PaymentStatus.PAID) {
-                walletService.refundOrder(order, "Hoàn tiền đơn hàng #" + order.getId() + " vào ví");
-                order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
-            }
+        // =========================================================================
+        // 1. KIỂM TRA QUYỀN TRUY CẬP (SECURITY CHECK - CHỐNG HACK IDOR)
+        // =========================================================================
+        if (!isAdmin && ((currentUserId == null) || !order.getUser().getId().equals(currentUserId))) {
+            throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
         }
 
+        if (!isAdmin && order.getOrderStatus() != Order.OrderStatus.PENDING) {
+            throw new RuntimeException("Bạn chỉ có thể tự hủy đơn hàng khi đang chờ xử lý. Vui lòng liên hệ CSKH!");
+        }
+
+        // CHẶN BỔ SUNG: Không cho phép Admin hủy đơn khi hàng đã xuất kho (SHIPPED)
+        if (isAdmin && (order.getOrderStatus() == Order.OrderStatus.SHIPPED || order.getOrderStatus() == Order.OrderStatus.DELIVERED)) {
+            throw new RuntimeException("Không thể hủy đơn hàng đã xuất kho hoặc giao thành công. Vui lòng sử dụng luồng Trả Hàng (Return).");
+        }
+
+        if (order.getOrderStatus() == Order.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Đơn hàng này đã bị hủy trước đó.");
+        }
+
+        // =========================================================================
+        // 2. KIỂM TRA TRẠNG THÁI ĐƠN HÀNG HỢP LỆ ĐỂ HỦY
+        // =========================================================================
+        // Khách hàng (USER) chỉ được tự hủy khi đơn đang ở trạng thái PENDING
+        if (!isAdmin && order.getOrderStatus() != Order.OrderStatus.PENDING) {
+            throw new RuntimeException("Bạn chỉ có thể tự hủy đơn hàng khi đang chờ xử lý. Vui lòng liên hệ CSKH!");
+        }
+
+        // Cả Admin và Hệ thống không được hủy đơn đã Giao thành công hoặc Đã hủy trước đó
+        if (order.getOrderStatus() == Order.OrderStatus.DELIVERED || order.getOrderStatus() == Order.OrderStatus.CANCELLED) {
+            throw new RuntimeException("Không thể hủy đơn hàng đã giao thành công hoặc đã bị hủy.");
+        }
+
+        // =========================================================================
+        // 3. XỬ LÝ HOÀN TIỀN VÀ TRẠNG THÁI THANH TOÁN
+        // =========================================================================
+        String paymentCode = order.getPaymentMethod().getCode().toUpperCase();
+        boolean isRefunded = false;
+
+        if (("VNPAY".equals(paymentCode) || "WALLET".equals(paymentCode)) && order.getPaymentStatus() == Order.PaymentStatus.PAID) {
+            walletService.refundOrder(order, "Hoàn tiền đơn hàng #" + order.getId() + " vào ví");
+            order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
+            isRefunded = true;
+        } else {
+            order.setPaymentStatus(Order.PaymentStatus.FAILED);
+        }
+
+        // =========================================================================
+        // 4. HOÀN LẠI TỒN KHO VÀ MÃ GIẢM GIÁ
+        // =========================================================================
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
         for (OrderItem item : orderItems) {
             skuRepository.incrementStock(item.getProductSku().getId(), item.getQuantity());
@@ -415,23 +457,96 @@ public class OrderService {
             }
         }
 
-        order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
+        // =========================================================================
+        // 5. CẬP NHẬT DB (ORDER & PAYMENT)
+        // =========================================================================
         order.setOrderStatus(Order.OrderStatus.CANCELLED);
         orderRepository.save(order);
 
         Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
         if (payment != null) {
-            payment.setStatus(Order.PaymentStatus.REFUNDED.name());
+            payment.setStatus(isRefunded ? Order.PaymentStatus.REFUNDED.name() : Order.PaymentStatus.FAILED.name());
             paymentRepository.save(payment);
         }
+
+        // =========================================================================
+        // 6. LƯU LỊCH SỬ GIAO DỊCH
+        // =========================================================================
+        String actionBy;
+        if (!isAdmin) {
+            actionBy = "Khách hàng";
+        } else if (currentUserId == null) {
+            actionBy = "Hệ thống tự động"; // Nhận biết từ Scheduler
+        } else {
+            actionBy = "Admin";
+        }
+
+        String noteMessage = isRefunded
+                ? actionBy + " đã hủy đơn hàng. Hoàn tiền vào ví thành công."
+                : actionBy + " đã hủy đơn hàng. Hoàn kho thành công.";
 
         OrderStatusHistory history = OrderStatusHistory.builder()
                 .order(order)
                 .status(Order.OrderStatus.CANCELLED.name())
-                .notes("Đơn hàng đã được hoàn tiền vào ví")
+                .notes(noteMessage)
                 .build();
         orderStatusHistoryRepository.save(history);
     }
 
+// OrderService.java — Thêm method mới
+    @Transactional
+    public void shipOrder(Integer orderId) {
+            Order order = orderRepository.findById(orderId)
+                            .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
 
+            if (order.getOrderStatus() != Order.OrderStatus.PROCESSING) {
+                    throw new WebErrorConfig(ErrorCode.INVALID_ORDER_STATUS);
+            }
+
+            order.setOrderStatus(Order.OrderStatus.SHIPPED);
+            orderRepository.save(order);
+                    OrderStatusHistory history = OrderStatusHistory.builder()
+                            .order(order)
+                            .status(Order.OrderStatus.SHIPPED.name())
+                            .notes("Đơn hàng đã được giao cho đơn vị vận chuyển")
+                            .build();
+            orderStatusHistoryRepository.save(history);
+    }
+
+
+    @Transactional
+    public void confirmOrder(Integer orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getOrderStatus() != Order.OrderStatus.PENDING) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        String paymentCode = order.getPaymentMethod().getCode();
+        if (!"CASH".equalsIgnoreCase(paymentCode) && order.getPaymentStatus() != Order.PaymentStatus.PAID) {
+            throw new WebErrorConfig(ErrorCode.ORDER_NOT_PAID);
+        }
+
+        order.setOrderStatus(Order.OrderStatus.PROCESSING);
+        orderRepository.save(order);
+
+        OrderStatusHistory history = OrderStatusHistory.builder()
+                .order(order)
+                .status(Order.OrderStatus.PROCESSING.name())
+                .notes("Admin đã xác nhận đơn hàng")
+                .build();
+        orderStatusHistoryRepository.save(history);
+    }
+
+    // Gọi hàm này khi chắc chắn khách đã thanh toán thành công
+    private void trackPurchaseForOrder(Order order) {
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+        for (OrderItem item : orderItems) {
+            userInteractionService.trackPurchase(
+                    order.getUser().getId(),
+                    item.getProductSku().getProduct().getId()
+            );
+        }
+    }
 }
