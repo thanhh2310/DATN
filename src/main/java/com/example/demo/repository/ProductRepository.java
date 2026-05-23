@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
+
 public interface ProductRepository extends JpaRepository<Product, Integer>,
         JpaSpecificationExecutor<Product> {
 
@@ -27,4 +30,23 @@ public interface ProductRepository extends JpaRepository<Product, Integer>,
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Product> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @EntityGraph(attributePaths = {
+            "category",
+            "brand",
+            "images",
+            "specs.attributeValue.attribute",
+            "skus.images",
+            "skus.skuValues.attributeValue.attribute"
+    })
+    @Query("""
+        SELECT DISTINCT p
+        FROM Product p
+        JOIN p.skus sku
+        WHERE p.id IN :ids
+          AND p.isActive = true
+          AND sku.isActive = true
+          AND sku.stockQuantity > 0
+    """)
+    List<Product> findAvailableProductsByIds(@Param("ids") Collection<Integer> ids);
 }

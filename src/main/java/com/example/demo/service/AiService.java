@@ -19,8 +19,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,7 +39,7 @@ public class AiService {
     public ChatResponse processChat(ChatRequest request) {
         String url = aiServiceUrl + "/chat";
         try {
-            HttpEntity<ChatRequest> requestEntity = new HttpEntity<>(request);
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(buildChatPayload(request));
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     url, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<>() {}
             );
@@ -45,12 +47,13 @@ public class AiService {
             Map<String, Object> body = response.getBody();
             if (body != null && "success".equals(body.get("status"))) {
                 String reply = (String) body.get("reply");
-                List<Integer> productIds = (List<Integer>) body.get("product_ids");
-
+                String sessionId = (String) body.get("session_id");
+                List<Integer> productIds = extractProductIds(body);
                 List<ProductResponse> products = fetchProductsByIds(productIds);
 
                 ChatResponse chatResponse = new ChatResponse();
                 chatResponse.setStatus("success");
+                chatResponse.setSessionId(sessionId);
                 chatResponse.setReply(reply);
                 chatResponse.setProducts(products);
                 return chatResponse;
@@ -61,23 +64,31 @@ public class AiService {
 
         ChatResponse fallback = new ChatResponse();
         fallback.setStatus("error");
+        fallback.setSessionId(request.getSessionId());
         fallback.setReply("Hệ thống chatbot đang bận, xin quý khách quay lại sau.");
         fallback.setProducts(Collections.emptyList());
         return fallback;
     }
 
     public List<ProductResponse> getRecommendations(RecommendRequest request) {
+        if (request.getUserId() == null) {
+            return Collections.emptyList();
+        }
+
         String url = aiServiceUrl + "/recommend";
         try {
-            HttpEntity<RecommendRequest> requestEntity = new HttpEntity<>(request);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("user_id", request.getUserId());
+            payload.put("limit", request.getLimit() != null ? request.getLimit() : 6);
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(payload);
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     url, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<>() {}
             );
 
             Map<String, Object> body = response.getBody();
             if (body != null && "success".equals(body.get("status"))) {
-                List<Integer> productIds = (List<Integer>) body.get("product_ids");
-                return fetchProductsByIds(productIds);
+                return fetchProductsByIds(extractProductIds(body));
             }
         } catch (Exception e) {
             log.error("Lỗi khi lấy Recommendations: ", e);
@@ -85,20 +96,76 @@ public class AiService {
         return Collections.emptyList();
     }
 
+    private Map<String, Object> buildChatPayload(ChatRequest request) {
+        Map<String, Object> payload = new HashMap<>();
+        String message = firstNonBlank(request.getMessage(), request.getQuery());
+        payload.put("message", message);
+        payload.put("query", message);
+        if (request.getSessionId() != null && !request.getSessionId().isBlank()) {
+            payload.put("session_id", request.getSessionId());
+        }
+        if (request.getUserId() != null) {
+            payload.put("user_id", request.getUserId());
+        }
+        return payload;
+    }
+
+    private String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.trim();
+        }
+        return second != null ? second.trim() : "";
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Integer> extractProductIds(Map<String, Object> body) {
+        Object rawIds = body.get("product_ids");
+        if (rawIds == null) {
+            rawIds = body.get("suggested_product_ids");
+        }
+        if (!(rawIds instanceof List<?> ids)) {
+            return Collections.emptyList();
+        }
+        List<Integer> productIds = new ArrayList<>();
+        for (Object id : ids) {
+            if (id instanceof Number number) {
+                productIds.add(number.intValue());
+            } else if (id instanceof String text) {
+                try {
+                    productIds.add(Integer.parseInt(text));
+                } catch (NumberFormatException ignored) {
+                    // Ignore malformed id from AI service.
+                }
+            }
+        }
+        return productIds;
+    }
+
     private List<ProductResponse> fetchProductsByIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
-        
-        List<Product> products = productRepository.findAllById(ids);
-        
-        // Sắp xếp lại danh sách product trả về theo đúng thứ tự ID mà AI recommend
+
+        List<Product> products = productRepository.findAvailableProductsByIds(ids);
+
         List<ProductResponse> sortedProducts = new ArrayList<>();
         for (Integer id : ids) {
             products.stream()
                     .filter(p -> p.getId().equals(id))
                     .findFirst()
-                    .ifPresent(p -> sortedProducts.add(productMapper.toProductResponse(p)));
+                    .map(productMapper::toProductResponse)
+                    .map(this::onlyInStockSkus)
+                    .ifPresent(sortedProducts::add);
         }
-        
+
         return sortedProducts;
+    }
+
+    private ProductResponse onlyInStockSkus(ProductResponse product) {
+        if (product.getSkus() != null) {
+            product.setSkus(product.getSkus().stream()
+                    .filter(sku -> Boolean.TRUE.equals(sku.getIsActive()))
+                    .filter(sku -> sku.getStockQuantity() != null && sku.getStockQuantity() > 0)
+                    .collect(Collectors.toList()));
+        }
+        return product;
     }
 }

@@ -61,6 +61,7 @@ public class SecurityConfig {
                                 "/api/categories/**",
                                 "/api/attributes/**",
                                 "/api/brands/**",
+                                "/api/ai/**",
                                 "/api/cart/**"
                         ).permitAll()
                         // Cho phép Guest xem sản phẩm (chỉ GET), POST/PUT/DELETE vẫn cần ADMIN qua @PreAuthorize
