@@ -549,4 +549,54 @@ public class OrderService {
             );
         }
     }
+
+    @Transactional(readOnly = true)
+    public PageResponse<OrderHistoryResponse> getAllOrdersPaginated(int page, int size) {
+        int pageNumber = (page > 0) ? page - 1 : 0;
+        Pageable pageable = PageRequest.of(pageNumber, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+
+        Page<Order> orderPage = orderRepository.findAll(pageable);
+
+        List<Integer> orderIds = orderPage.getContent().stream()
+                .map(Order::getId)
+                .toList();
+
+        Map<Integer, List<OrderItem>> itemsByOrderId = orderItemRepository
+                .findByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
+
+        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream().map(order -> {
+            List<OrderHistoryResponse.OrderItemPreviewResponse> itemPreviews = itemsByOrderId
+                    .getOrDefault(order.getId(), List.of())
+                    .stream()
+                    .map(item -> OrderHistoryResponse.OrderItemPreviewResponse.builder()
+                            .skuId(item.getProductSku().getId())
+                            .orderItemId(item.getId())
+                            .productId(item.getProductSku().getProduct().getId())
+                            .productName(item.getProductSku().getProduct().getName())
+                            .imageUrl(helper.resolveSkuImage(item.getProductSku()))
+                            .quantity(item.getQuantity())
+                            .price(item.getPrice())
+                            .build())
+                    .toList();
+
+            return OrderHistoryResponse.builder()
+                    .orderId(order.getId())
+                    .totalAmount(order.getTotalAmount())
+                    .orderStatus(order.getOrderStatus().name())
+                    .paymentStatus(order.getPaymentStatus().name())
+                    .createdAt(order.getCreatedAt())
+                    .items(itemPreviews)
+                    .build();
+        }).toList();
+
+        return PageResponse.<OrderHistoryResponse>builder()
+                .currentPage(page)
+                .totalPage(orderPage.getTotalPages())
+                .pageSize(orderPage.getSize())
+                .totalElements(orderPage.getTotalElements())
+                .items(orderResponses)
+                .build();
+    }
 }

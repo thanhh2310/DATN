@@ -128,4 +128,18 @@ public class OrderController {
                 .build();
     }
 
+    // 4. ADMIN LẤY TẤT CẢ ĐƠN HÀNG (CÓ PHÂN TRANG)
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<PageResponse<OrderHistoryResponse>> getAllOrders(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ApiResponse.<PageResponse<OrderHistoryResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách toàn bộ đơn hàng thành công")
+                .data(orderService.getAllOrdersPaginated(page, size))
+                .build();
+    }
+
 }
