@@ -18,7 +18,7 @@ public class CategoryAttributeController {
     private final CategoryAttributeService categoryAttributeService;
 
     @PostMapping("/{categoryId}/attributes")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CategoryAttributeResponse> assignAttribute(
             @PathVariable Integer categoryId,
             @RequestBody CategoryAttributeRequest request) {
@@ -48,7 +48,7 @@ public class CategoryAttributeController {
     }
 
     @PutMapping("/attributes/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CategoryAttributeResponse> update(
             @PathVariable Integer id,
             @RequestBody CategoryAttributeRequest request) {
@@ -63,7 +63,7 @@ public class CategoryAttributeController {
     }
 
     @DeleteMapping("/attributes/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         categoryAttributeService.removeCategoryAttribute(id);
 

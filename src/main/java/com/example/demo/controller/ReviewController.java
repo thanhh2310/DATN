@@ -66,7 +66,7 @@ public class ReviewController {
     }
 
     @PutMapping("/{reviewId}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<ReviewResponse> approveReview(
             @PathVariable Integer reviewId
     ) {

@@ -10,17 +10,13 @@ import com.example.demo.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@Slf4j
 public class OrderController {
     private final OrderService orderService;
     private final Helper helper;
@@ -52,7 +48,7 @@ public class OrderController {
 
     // 1. ADMIN XÁC NHẬN ĐƠN (PENDING -> PROCESSING)
     @PutMapping("/{orderId}/confirm")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> confirmOrder(@PathVariable Integer orderId) {
         orderService.confirmOrder(orderId);
 
@@ -64,7 +60,7 @@ public class OrderController {
 
     // 2. ADMIN/NHÂN VIÊN XÁC NHẬN GIAO THÀNH CÔNG (Thay thế complete-cod)
     @PutMapping("/{orderId}/deliver")
-    @PreAuthorize("hasRole('ADMIN')") // Bạn có thể thêm 'STAFF' hoặc 'SHIPPER' nếu có role này
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> deliverOrder(@PathVariable Integer orderId) {
         orderService.deliverOrder(orderId);
 
@@ -76,41 +72,17 @@ public class OrderController {
 
     // 3. HỦY ĐƠN VÀ XỬ LÝ HOÀN TIỀN/HOÀN KHO
     @PutMapping("/{orderId}/cancel")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'USER')")
     public ApiResponse<?> cancelOrder(@PathVariable Integer orderId) {
-
-        // --- ĐOẠN CODE TEST LOG BẰNG SLF4J ---
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication != null) {
-            log.info("=== DEBUG SPRING SECURITY ===");
-            log.info("Username/Email đang gọi API: {}", authentication.getName());
-
-            // In trực tiếp Collection
-            log.info("Tất cả quyền (Authorities Object): {}", authentication.getAuthorities());
-
-            // Map sang String list để nhìn cho rõ (Cách chuẩn nhất)
-            List<String> roles = authentication.getAuthorities().stream()
-                    .map(a -> a.getAuthority())
-                    .toList();
-            log.info("Danh sách Roles dạng chuỗi: {}", roles);
-            log.info("=============================");
-        } else {
-            log.warn("CẢNH BÁO: Authentication đang bị NULL (User chưa đăng nhập hoặc mất Token!)");
-        }
-        // -------------------------------------
-
         Integer currentUserId = helper.getCurrentUserId();
 
-        // Kiểm tra xem người gọi API có phải là ADMIN không dựa vào Spring Security Context
-        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+        // Kiểm tra xem người gọi API có phải là ADMIN/STAFF không dựa vào Spring Security Context
+        boolean isManager = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        log.info("Kết quả biến isAdmin: {}", isAdmin);
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_STAFF"));
 
         // Truyền thông tin xuống Service để check quyền
-        orderService.cancelOrder(orderId, currentUserId, isAdmin);
+        orderService.cancelOrder(orderId, currentUserId, isManager);
 
         return ApiResponse.builder()
                 .code(200)
@@ -119,7 +91,7 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/ship")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> shipOrder(@PathVariable Integer orderId) {
         orderService.shipOrder(orderId);
         return ApiResponse.builder()
@@ -130,7 +102,7 @@ public class OrderController {
 
     // 4. ADMIN LẤY TẤT CẢ ĐƠN HÀNG (CÓ PHÂN TRANG)
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<PageResponse<OrderHistoryResponse>> getAllOrders(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size

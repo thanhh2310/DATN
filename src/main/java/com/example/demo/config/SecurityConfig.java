@@ -65,7 +65,7 @@ public class SecurityConfig {
                                 "/api/cart/**"
                         ).permitAll()
                         // Cho phép Guest xem sản phẩm (chỉ GET), POST/PUT/DELETE vẫn cần ADMIN qua @PreAuthorize
-                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/skus/*/images").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/skus/*/images", "/api/banners/**").permitAll()
                         // VNPAY callbacks: cả return và IPN đều không có JWT token
                         .requestMatchers("/api/payment/vnpay-return/**").permitAll()
                         .requestMatchers("/api/payment/vnpay-ipn/**").permitAll()

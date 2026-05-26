@@ -23,7 +23,7 @@ public class ProductController {
     private final ProductService productService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<String> createProduct(
             @Valid @RequestBody ProductCreationRequest request
     ) {
@@ -63,7 +63,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<ProductResponse> updateProduct(
             @PathVariable Integer id,
             @Valid @RequestBody ProductUpdateRequest request
@@ -78,7 +78,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<String> deleteProduct(@PathVariable Integer id) {
         productService.deleteProduct(id);
 

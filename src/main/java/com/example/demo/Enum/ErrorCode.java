@@ -74,7 +74,8 @@ public enum ErrorCode {
     WALLET_TRANSACTION_ALREADY_PROCESSED(909, "Wallet transaction already processed"),
     ORDER_ALREADY_REFUNDED(910, "Order already refunded"),
     ORDER_NOT_PAID(911, "Order not paid"),
-    INVALID_ORDER_STATUS(912, "Invalid order status");
+    INVALID_ORDER_STATUS(912, "Invalid order status"),
+    BANNER_NOT_FOUND(913, "Banner not found");
 
     ErrorCode(int code, String message) {
         this.code = code;

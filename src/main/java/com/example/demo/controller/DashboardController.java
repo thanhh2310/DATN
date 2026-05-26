@@ -14,7 +14,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     // 1. Lấy 4 chỉ số tổng quan trên cùng
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/overview")
     public ApiResponse<?> getOverview() {
         return ApiResponse.builder()
@@ -26,7 +26,7 @@ public class DashboardController {
 
     // 2. Lấy data vẽ biểu đồ đường (Mặc định 30 ngày)
     @GetMapping("/revenue-chart")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> getRevenueChart(@RequestParam(defaultValue = "30") int days) {
         return ApiResponse.builder()
                 .code(200)
@@ -37,6 +37,7 @@ public class DashboardController {
 
     // 3. Lấy Top sản phẩm bán chạy (Mặc định Top 10)
     @GetMapping("/top-products")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> getTopProducts(@RequestParam(defaultValue = "10") int limit) {
         return ApiResponse.builder()
                 .code(200)
@@ -47,7 +48,7 @@ public class DashboardController {
 
     // 4. Lấy cơ cấu doanh thu theo Danh mục (vẽ biểu đồ tròn)
     @GetMapping("/category-revenue")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<?> getCategoryRevenue() {
         return ApiResponse.builder()
                 .code(200)

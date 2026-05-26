@@ -390,23 +390,23 @@ public class OrderService {
     }
 
     @Transactional
-    public void cancelOrder(Integer orderId, Integer currentUserId, boolean isAdmin) {
+    public void cancelOrder(Integer orderId, Integer currentUserId, boolean isManager) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
 
         // =========================================================================
         // 1. KIỂM TRA QUYỀN TRUY CẬP (SECURITY CHECK - CHỐNG HACK IDOR)
         // =========================================================================
-        if (!isAdmin && ((currentUserId == null) || !order.getUser().getId().equals(currentUserId))) {
+        if (!isManager && ((currentUserId == null) || !order.getUser().getId().equals(currentUserId))) {
             throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
         }
 
-        if (!isAdmin && order.getOrderStatus() != Order.OrderStatus.PENDING) {
+        if (!isManager && order.getOrderStatus() != Order.OrderStatus.PENDING) {
             throw new RuntimeException("Bạn chỉ có thể tự hủy đơn hàng khi đang chờ xử lý. Vui lòng liên hệ CSKH!");
         }
 
-        // CHẶN BỔ SUNG: Không cho phép Admin hủy đơn khi hàng đã xuất kho (SHIPPED)
-        if (isAdmin && (order.getOrderStatus() == Order.OrderStatus.SHIPPED || order.getOrderStatus() == Order.OrderStatus.DELIVERED)) {
+        // CHẶN BỔ SUNG: Không cho phép Admin/Staff hủy đơn khi hàng đã xuất kho (SHIPPED)
+        if (isManager && (order.getOrderStatus() == Order.OrderStatus.SHIPPED || order.getOrderStatus() == Order.OrderStatus.DELIVERED)) {
             throw new RuntimeException("Không thể hủy đơn hàng đã xuất kho hoặc giao thành công. Vui lòng sử dụng luồng Trả Hàng (Return).");
         }
 
@@ -418,7 +418,7 @@ public class OrderService {
         // 2. KIỂM TRA TRẠNG THÁI ĐƠN HÀNG HỢP LỆ ĐỂ HỦY
         // =========================================================================
         // Khách hàng (USER) chỉ được tự hủy khi đơn đang ở trạng thái PENDING
-        if (!isAdmin && order.getOrderStatus() != Order.OrderStatus.PENDING) {
+        if (!isManager && order.getOrderStatus() != Order.OrderStatus.PENDING) {
             throw new RuntimeException("Bạn chỉ có thể tự hủy đơn hàng khi đang chờ xử lý. Vui lòng liên hệ CSKH!");
         }
 
@@ -473,12 +473,12 @@ public class OrderService {
         // 6. LƯU LỊCH SỬ GIAO DỊCH
         // =========================================================================
         String actionBy;
-        if (!isAdmin) {
+        if (!isManager) {
             actionBy = "Khách hàng";
         } else if (currentUserId == null) {
             actionBy = "Hệ thống tự động"; // Nhận biết từ Scheduler
         } else {
-            actionBy = "Admin";
+            actionBy = "Admin/Staff";
         }
 
         String noteMessage = isRefunded

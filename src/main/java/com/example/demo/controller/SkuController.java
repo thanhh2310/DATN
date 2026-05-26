@@ -20,7 +20,7 @@ public class SkuController {
     private final SkuService skuService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<SkuDetailResponse> createSku(
             @PathVariable Integer productId,
             @Valid @RequestBody SkuRequest request
@@ -35,7 +35,7 @@ public class SkuController {
     }
 
     @PutMapping("/{skuId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<SkuDetailResponse> updateSku(
             @PathVariable Integer productId,
             @PathVariable Integer skuId,
@@ -51,7 +51,7 @@ public class SkuController {
     }
 
     @PatchMapping("/{skuId}/stock")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<SkuDetailResponse> updateStock(
             @PathVariable Integer productId,
             @PathVariable Integer skuId,
@@ -94,7 +94,7 @@ public class SkuController {
     }
 
     @DeleteMapping("/{skuId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<String> deleteSku(
             @PathVariable Integer productId,
             @PathVariable Integer skuId

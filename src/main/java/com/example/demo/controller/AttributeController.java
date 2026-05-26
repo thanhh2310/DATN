@@ -36,7 +36,7 @@ public class AttributeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeResponse> createAttribute(
             @Valid @RequestBody AttributeCreationRequest request) {
         return ApiResponse.<AttributeResponse>builder()
@@ -47,7 +47,7 @@ public class AttributeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeResponse> updateAttribute(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateAttributeRequest request) {
@@ -59,7 +59,7 @@ public class AttributeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<Void> deleteAttribute(@PathVariable Integer id) {
         attributeService.deleteAttribute(id);
 

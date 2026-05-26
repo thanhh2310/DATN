@@ -19,7 +19,7 @@ public class SkuImageController {
     private final SkuImageService skuImageService;
 
     @PostMapping("/{skuId}/images")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<SkuImageResponse> addImage(
             @PathVariable Integer skuId,
             @Valid @RequestBody SkuImageRequest request
@@ -34,7 +34,7 @@ public class SkuImageController {
     }
 
     @DeleteMapping("/{skuId}/images/{imageId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<String> deleteImage(
             @PathVariable Integer skuId,
             @PathVariable Integer imageId
@@ -49,7 +49,7 @@ public class SkuImageController {
     }
 
     @PutMapping("/{skuId}/images/{imageId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<SkuImageResponse> updateImage(
             @PathVariable Integer skuId,
             @PathVariable Integer imageId,

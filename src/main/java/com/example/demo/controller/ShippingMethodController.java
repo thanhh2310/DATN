@@ -20,7 +20,7 @@ public class ShippingMethodController {
 
     // ================= CREATE =================
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<ShippingMethodResponse> create(@Valid @RequestBody ShippingMethodRequest request) {
         return ApiResponse.<ShippingMethodResponse>builder()
                 .code(200)
@@ -31,7 +31,7 @@ public class ShippingMethodController {
 
     // ================= UPDATE =================
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<ShippingMethodResponse> update(
             @PathVariable Integer id,
             @Valid @RequestBody ShippingMethodRequest request
@@ -45,7 +45,7 @@ public class ShippingMethodController {
 
     // ================= DELETE =================
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         shippingMethodService.delete(id);
 

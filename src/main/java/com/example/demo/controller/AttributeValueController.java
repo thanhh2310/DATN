@@ -16,7 +16,7 @@ public class AttributeValueController {
     private final AttributeValueService attributeValueService;
 
     @PostMapping("/{attributeId}/values")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeValueResponse> addValue(
             @PathVariable Integer attributeId,
             @RequestParam String value,
@@ -32,7 +32,7 @@ public class AttributeValueController {
     }
 
     @PutMapping("/values/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeValueResponse> updateValue(
             @PathVariable Integer id,
             @RequestBody AttributeValueUpdateRequest request) {
@@ -47,7 +47,7 @@ public class AttributeValueController {
     }
 
     @DeleteMapping("/values/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<Void> deleteValue(@PathVariable Integer id) {
         attributeValueService.deleteValue(id);
 

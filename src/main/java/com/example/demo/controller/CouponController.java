@@ -20,7 +20,7 @@ public class CouponController {
 
     // ================= CREATE =================
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CouponResponse> create(@Valid @RequestBody CouponRequest request) {
         return ApiResponse.<CouponResponse>builder()
                 .code(200)
@@ -31,7 +31,7 @@ public class CouponController {
 
     // ================= UPDATE =================
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CouponResponse> update(
             @PathVariable Integer id,
             @Valid @RequestBody CouponRequest request
@@ -45,7 +45,7 @@ public class CouponController {
 
     // ================= DELETE =================
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         couponService.delete(id);
 
