@@ -19,6 +19,7 @@ public class ProductResponse {
     String slug;
     String description;
     BigDecimal basePrice;
+    Long soldCount;
     Boolean isActive;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;

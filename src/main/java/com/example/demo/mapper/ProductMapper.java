@@ -5,12 +5,16 @@ import com.example.demo.model.Product;
 import com.example.demo.model.ProductImage;
 import com.example.demo.model.ProductSku;
 import com.example.demo.model.ProductSpec;
+import com.example.demo.repository.OrderItemRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class ProductMapper {
+    private final OrderItemRepository orderItemRepository;
 
     public ProductResponse toProductResponse(Product product) {
         if (product == null) return null;
@@ -21,6 +25,7 @@ public class ProductMapper {
                 .slug(product.getSlug())
                 .description(product.getDescription())
                 .basePrice(product.getBasePrice())
+                .soldCount(orderItemRepository.countSoldByProductId(product.getId()))
                 .isActive(product.getIsActive())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())

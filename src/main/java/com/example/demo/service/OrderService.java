@@ -6,6 +6,7 @@ import com.example.demo.dto.request.PlaceOrderRequest;
 import com.example.demo.dto.response.OrderHistoryResponse;
 import com.example.demo.dto.response.OrderResponse;
 import com.example.demo.dto.response.PageResponse;
+import com.example.demo.dto.response.SkuAttributeResponse;
 import com.example.demo.model.*;
 import com.example.demo.repository.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -317,30 +318,17 @@ public class OrderService {
                 .stream()
                 .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
 
-        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream().map(order -> {
-            List<OrderHistoryResponse.OrderItemPreviewResponse> itemPreviews = itemsByOrderId
-                    .getOrDefault(order.getId(), List.of())
-                    .stream()
-                    .map(item -> OrderHistoryResponse.OrderItemPreviewResponse.builder()
-                            .skuId(item.getProductSku().getId())
-                            .orderItemId(item.getId())
-                            .productId(item.getProductSku().getProduct().getId())
-                            .productName(item.getProductSku().getProduct().getName())
-                            .imageUrl(helper.resolveSkuImage(item.getProductSku()))
-                            .quantity(item.getQuantity())
-                            .price(item.getPrice())
-                            .build())
-                    .toList();
+        Map<Integer, Payment> paymentByOrderId = paymentRepository.findByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.toMap(payment -> payment.getOrder().getId(), payment -> payment, (first, second) -> first));
 
-            return OrderHistoryResponse.builder()
-                    .orderId(order.getId())
-                    .totalAmount(order.getTotalAmount())
-                    .orderStatus(order.getOrderStatus().name())
-                    .paymentStatus(order.getPaymentStatus().name())
-                    .createdAt(order.getCreatedAt())
-                    .items(itemPreviews)
-                    .build();
-        }).toList();
+        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream()
+                .map(order -> mapToOrderHistoryResponse(
+                        order,
+                        itemsByOrderId.getOrDefault(order.getId(), List.of()),
+                        paymentByOrderId.get(order.getId())
+                ))
+                .toList();
 
         return PageResponse.<OrderHistoryResponse>builder()
                 .currentPage(page)
@@ -566,30 +554,17 @@ public class OrderService {
                 .stream()
                 .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
 
-        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream().map(order -> {
-            List<OrderHistoryResponse.OrderItemPreviewResponse> itemPreviews = itemsByOrderId
-                    .getOrDefault(order.getId(), List.of())
-                    .stream()
-                    .map(item -> OrderHistoryResponse.OrderItemPreviewResponse.builder()
-                            .skuId(item.getProductSku().getId())
-                            .orderItemId(item.getId())
-                            .productId(item.getProductSku().getProduct().getId())
-                            .productName(item.getProductSku().getProduct().getName())
-                            .imageUrl(helper.resolveSkuImage(item.getProductSku()))
-                            .quantity(item.getQuantity())
-                            .price(item.getPrice())
-                            .build())
-                    .toList();
+        Map<Integer, Payment> paymentByOrderId = paymentRepository.findByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.toMap(payment -> payment.getOrder().getId(), payment -> payment, (first, second) -> first));
 
-            return OrderHistoryResponse.builder()
-                    .orderId(order.getId())
-                    .totalAmount(order.getTotalAmount())
-                    .orderStatus(order.getOrderStatus().name())
-                    .paymentStatus(order.getPaymentStatus().name())
-                    .createdAt(order.getCreatedAt())
-                    .items(itemPreviews)
-                    .build();
-        }).toList();
+        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream()
+                .map(order -> mapToOrderHistoryResponse(
+                        order,
+                        itemsByOrderId.getOrDefault(order.getId(), List.of()),
+                        paymentByOrderId.get(order.getId())
+                ))
+                .toList();
 
         return PageResponse.<OrderHistoryResponse>builder()
                 .currentPage(page)
@@ -598,5 +573,97 @@ public class OrderService {
                 .totalElements(orderPage.getTotalElements())
                 .items(orderResponses)
                 .build();
+    }
+
+    private OrderHistoryResponse mapToOrderHistoryResponse(Order order, List<OrderItem> orderItems, Payment payment) {
+        User buyer = order.getUser();
+        PaymentMethod paymentMethod = order.getPaymentMethod();
+        ShippingMethod shippingMethod = order.getShippingMethod();
+        Coupon coupon = order.getCoupon();
+
+        List<OrderHistoryResponse.OrderItemPreviewResponse> itemPreviews = orderItems.stream()
+                .map(this::mapToOrderItemPreviewResponse)
+                .toList();
+
+        return OrderHistoryResponse.builder()
+                .orderId(order.getId())
+                .buyerId(buyer != null ? buyer.getId() : null)
+                .buyerName(buildBuyerName(buyer))
+                .buyerEmail(buyer != null ? buyer.getEmail() : null)
+                .buyerPhone(buyer != null ? buyer.getPhoneNumber() : null)
+                .paymentMethodId(paymentMethod != null ? paymentMethod.getId() : null)
+                .paymentMethodCode(paymentMethod != null ? paymentMethod.getCode() : null)
+                .paymentMethodName(paymentMethod != null ? paymentMethod.getName() : null)
+                .paymentProviderCode(payment != null ? payment.getProviderCode() : null)
+                .paymentTransactionId(payment != null ? payment.getTransactionId() : null)
+                .shippingAddress(order.getShippingAddress())
+                .shippingCity(order.getShippingCity())
+                .shippingMethodId(shippingMethod != null ? shippingMethod.getId() : null)
+                .shippingMethodName(shippingMethod != null ? shippingMethod.getName() : null)
+                .subtotal(order.getSubtotal())
+                .shippingFee(order.getShippingFee())
+                .discountAmount(order.getDiscountAmount())
+                .couponId(coupon != null ? coupon.getId() : null)
+                .couponCode(coupon != null ? coupon.getCode() : null)
+                .couponDiscountType(coupon != null ? coupon.getDiscountType() : null)
+                .couponDiscountValue(coupon != null ? coupon.getDiscountValue() : null)
+                .totalAmount(order.getTotalAmount())
+                .orderStatus(order.getOrderStatus().name())
+                .paymentStatus(order.getPaymentStatus().name())
+                .createdAt(order.getCreatedAt())
+                .items(itemPreviews)
+                .build();
+    }
+
+    private OrderHistoryResponse.OrderItemPreviewResponse mapToOrderItemPreviewResponse(OrderItem item) {
+        ProductSku sku = item.getProductSku();
+        Product product = sku.getProduct();
+
+        return OrderHistoryResponse.OrderItemPreviewResponse.builder()
+                .skuId(sku.getId())
+                .orderItemId(item.getId())
+                .productId(product.getId())
+                .productName(product.getName())
+                .productSlug(product.getSlug())
+                .skuCode(sku.getSkuCode())
+                .imageUrl(helper.resolveSkuImage(sku))
+                .quantity(item.getQuantity())
+                .price(item.getPrice())
+                .discount(item.getDiscount())
+                .attributeValues(mapSkuAttributes(sku))
+                .build();
+    }
+
+    private List<SkuAttributeResponse> mapSkuAttributes(ProductSku sku) {
+        if (sku.getSkuValues() == null) {
+            return List.of();
+        }
+
+        return sku.getSkuValues().stream()
+                .map(skuValue -> {
+                    AttributeValue attrVal = skuValue.getAttributeValue();
+                    Attribute attr = attrVal.getAttribute();
+                    return SkuAttributeResponse.builder()
+                            .attributeId(attr.getId())
+                            .attributeName(attr.getName())
+                            .valueId(attrVal.getId())
+                            .valueName(attrVal.getValue())
+                            .description(attrVal.getDescription())
+                            .build();
+                })
+                .toList();
+    }
+
+    private String buildBuyerName(User buyer) {
+        if (buyer == null) {
+            return null;
+        }
+
+        String fullName = String.join(" ",
+                buyer.getFirstName() != null ? buyer.getFirstName() : "",
+                buyer.getLastName() != null ? buyer.getLastName() : ""
+        ).trim();
+
+        return fullName.isBlank() ? buyer.getEmail() : fullName;
     }
 }

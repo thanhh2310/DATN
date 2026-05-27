@@ -45,4 +45,13 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
         ORDER BY revenue DESC
     """, nativeQuery = true)
     List<CategoryRevenueProjection> getRevenueByCategory();
+
+    @Query("""
+        SELECT COALESCE(SUM(oi.quantity), 0)
+        FROM OrderItem oi
+        WHERE oi.productSku.product.id = :productId
+          AND oi.order.paymentStatus = com.example.demo.model.Order.PaymentStatus.PAID
+          AND oi.order.orderStatus <> com.example.demo.model.Order.OrderStatus.CANCELLED
+    """)
+    Long countSoldByProductId(@Param("productId") Integer productId);
 }

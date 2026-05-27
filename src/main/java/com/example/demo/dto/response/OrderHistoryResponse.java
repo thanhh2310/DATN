@@ -14,12 +14,34 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderHistoryResponse {
     Integer orderId;
+    Integer buyerId;
+    String buyerName;
+    String buyerEmail;
+    String buyerPhone;
+
+    Integer paymentMethodId;
+    String paymentMethodCode;
+    String paymentMethodName;
+    String paymentProviderCode;
+    String paymentTransactionId;
+
+    String shippingAddress;
+    String shippingCity;
+    Integer shippingMethodId;
+    String shippingMethodName;
+    BigDecimal subtotal;
+    BigDecimal shippingFee;
+    BigDecimal discountAmount;
+    Integer couponId;
+    String couponCode;
+    String couponDiscountType;
+    BigDecimal couponDiscountValue;
+
     BigDecimal totalAmount;
     String orderStatus;
     String paymentStatus;
     LocalDateTime createdAt;
 
-    // Danh sách mặt hàng để FE render ảnh và tên sản phẩm
     List<OrderItemPreviewResponse> items;
 
     @Data
@@ -32,8 +54,12 @@ public class OrderHistoryResponse {
         Integer orderItemId;
         Integer productId;
         String productName;
+        String productSlug;
+        String skuCode;
         String imageUrl;
         Integer quantity;
         BigDecimal price;
+        BigDecimal discount;
+        List<SkuAttributeResponse> attributeValues;
     }
 }
