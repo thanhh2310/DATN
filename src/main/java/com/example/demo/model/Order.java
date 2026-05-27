@@ -72,7 +72,7 @@ public class Order {
     PaymentMethod paymentMethod;
 
     public enum OrderStatus {
-        PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+        PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED, RETURN_REQUESTED, RETURNED, RETURN_REJECTED
     }
 
     public enum PaymentStatus {

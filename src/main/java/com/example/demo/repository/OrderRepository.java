@@ -25,14 +25,14 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     );
 
     // Lấy tổng doanh thu toàn hệ thống
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.paymentStatus = 'PAID' AND o.orderStatus != 'CANCELLED'")
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.paymentStatus = 'PAID' AND o.orderStatus NOT IN ('CANCELLED', 'RETURNED')")
     BigDecimal calculateTotalRevenue();
 
     // Đếm số đơn hàng theo trạng thái
     long countByOrderStatus(Order.OrderStatus status);
 
     // Đếm tổng số đơn thành công
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus != 'CANCELLED'")
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus NOT IN ('CANCELLED', 'RETURNED')")
     long countTotalValidOrders();
 
     // Lấy doanh thu theo từng ngày (Dùng Native Query cho dễ xử lý Date)
@@ -43,7 +43,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
             COALESCE(SUM(total_amount), 0) AS totalRevenue
         FROM orders
         WHERE payment_status = 'PAID' 
-          AND order_status != 'CANCELLED'
+          AND order_status NOT IN ('CANCELLED', 'RETURNED')
           AND created_at >= :startDate
         GROUP BY CAST(created_at AS DATE)
         ORDER BY reportDate ASC

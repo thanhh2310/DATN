@@ -24,7 +24,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
         JOIN orders o ON oi.order_id = o.id
         JOIN product_skus ps ON oi.product_sku_id = ps.id
         JOIN products p ON ps.product_id = p.id
-        WHERE o.payment_status = 'PAID' AND o.order_status != 'CANCELLED'
+        WHERE o.payment_status = 'PAID' AND o.order_status NOT IN ('CANCELLED', 'RETURNED')
         GROUP BY p.id, p.name
         ORDER BY totalSold DESC
         LIMIT :limit
@@ -40,7 +40,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
         JOIN product_skus ps ON oi.product_sku_id = ps.id
         JOIN products p ON ps.product_id = p.id
         JOIN categories c ON p.category_id = c.id
-        WHERE o.payment_status = 'PAID' AND o.order_status != 'CANCELLED'
+        WHERE o.payment_status = 'PAID' AND o.order_status NOT IN ('CANCELLED', 'RETURNED')
         GROUP BY c.name
         ORDER BY revenue DESC
     """, nativeQuery = true)
@@ -51,7 +51,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
         FROM OrderItem oi
         WHERE oi.productSku.product.id = :productId
           AND oi.order.paymentStatus = com.example.demo.model.Order.PaymentStatus.PAID
-          AND oi.order.orderStatus <> com.example.demo.model.Order.OrderStatus.CANCELLED
+          AND oi.order.orderStatus NOT IN (
+              com.example.demo.model.Order.OrderStatus.CANCELLED,
+              com.example.demo.model.Order.OrderStatus.RETURNED
+          )
     """)
     Long countSoldByProductId(@Param("productId") Integer productId);
 }

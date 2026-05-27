@@ -75,7 +75,11 @@ public enum ErrorCode {
     ORDER_ALREADY_REFUNDED(910, "Order already refunded"),
     ORDER_NOT_PAID(911, "Order not paid"),
     INVALID_ORDER_STATUS(912, "Invalid order status"),
-    BANNER_NOT_FOUND(913, "Banner not found");
+    BANNER_NOT_FOUND(913, "Banner not found"),
+    ORDER_RETURN_NOT_FOUND(914, "Order return request not found"),
+    ORDER_RETURN_ALREADY_EXISTED(915, "Order return request already existed"),
+    ORDER_NOT_DELIVERED(916, "Order has not been delivered"),
+    ORDER_RETURN_ALREADY_PROCESSED(917, "Order return request already processed");
 
     ErrorCode(int code, String message) {
         this.code = code;
