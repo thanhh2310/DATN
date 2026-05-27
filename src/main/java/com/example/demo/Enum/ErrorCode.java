@@ -80,7 +80,8 @@ public enum ErrorCode {
     ORDER_RETURN_ALREADY_EXISTED(915, "Order return request already existed"),
     ORDER_NOT_DELIVERED(916, "Order has not been delivered"),
     ORDER_RETURN_ALREADY_PROCESSED(917, "Order return request already processed"),
-    ORDER_RETURN_EXPIRED(918, "Return request period has expired");
+    ORDER_RETURN_EXPIRED(918, "Return request period has expired"),
+    CHATBOT_SESSION_NOT_FOUND(919, "Chatbot session not found");
 
     ErrorCode(int code, String message) {
         this.code = code;

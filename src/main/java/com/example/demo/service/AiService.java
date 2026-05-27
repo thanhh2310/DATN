@@ -5,8 +5,14 @@ import com.example.demo.dto.request.RecommendRequest;
 import com.example.demo.dto.response.ChatResponse;
 import com.example.demo.dto.response.ProductResponse;
 import com.example.demo.mapper.ProductMapper;
+import com.example.demo.model.ChatbotMessage;
+import com.example.demo.model.ChatbotSession;
 import com.example.demo.model.Product;
+import com.example.demo.model.User;
+import com.example.demo.repository.ChatbotMessageRepository;
+import com.example.demo.repository.ChatbotSessionRepository;
 import com.example.demo.repository.ProductRepository;
+import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,6 +38,9 @@ public class AiService {
 
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
+    private final ChatbotSessionRepository chatbotSessionRepository;
+    private final ChatbotMessageRepository chatbotMessageRepository;
+    private final UserRepository userRepository;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${ai.service.url:http://localhost:5001/api/ai}")
@@ -38,6 +48,11 @@ public class AiService {
 
     public ChatResponse processChat(ChatRequest request) {
         String url = aiServiceUrl + "/chat";
+        String sessionId = resolveSessionId(request);
+        request.setSessionId(sessionId);
+        ChatbotSession session = getOrCreateSession(sessionId, request.getUserId());
+        saveMessage(session, ChatbotMessage.SenderType.USER, firstNonBlank(request.getMessage(), request.getQuery()), null);
+
         try {
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(buildChatPayload(request));
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
@@ -47,9 +62,9 @@ public class AiService {
             Map<String, Object> body = response.getBody();
             if (body != null && "success".equals(body.get("status"))) {
                 String reply = (String) body.get("reply");
-                String sessionId = (String) body.get("session_id");
                 List<Integer> productIds = extractProductIds(body);
                 List<ProductResponse> products = fetchProductsByIds(productIds);
+                saveMessage(session, ChatbotMessage.SenderType.BOT, reply, joinProductIds(productIds));
 
                 ChatResponse chatResponse = new ChatResponse();
                 chatResponse.setStatus("success");
@@ -64,9 +79,10 @@ public class AiService {
 
         ChatResponse fallback = new ChatResponse();
         fallback.setStatus("error");
-        fallback.setSessionId(request.getSessionId());
+        fallback.setSessionId(sessionId);
         fallback.setReply("Hệ thống chatbot đang bận, xin quý khách quay lại sau.");
         fallback.setProducts(Collections.emptyList());
+        saveMessage(session, ChatbotMessage.SenderType.BOT, fallback.getReply(), null);
         return fallback;
     }
 
@@ -115,6 +131,47 @@ public class AiService {
             return first.trim();
         }
         return second != null ? second.trim() : "";
+    }
+
+    private String resolveSessionId(ChatRequest request) {
+        if (request.getSessionId() != null && !request.getSessionId().isBlank()) {
+            return request.getSessionId().trim();
+        }
+        return UUID.randomUUID().toString();
+    }
+
+    private ChatbotSession getOrCreateSession(String sessionId, Integer userId) {
+        return chatbotSessionRepository.findById(sessionId)
+                .orElseGet(() -> {
+                    User user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+                    return chatbotSessionRepository.save(ChatbotSession.builder()
+                            .id(sessionId)
+                            .user(user)
+                            .sessionStatus(ChatbotSession.SessionStatus.ACTIVE)
+                            .build());
+                });
+    }
+
+    private void saveMessage(ChatbotSession session, ChatbotMessage.SenderType senderType, String text, String productIds) {
+        if (text == null || text.isBlank()) {
+            return;
+        }
+
+        chatbotMessageRepository.save(ChatbotMessage.builder()
+                .session(session)
+                .senderType(senderType)
+                .messageText(text)
+                .retrievedProductIds(productIds)
+                .build());
+    }
+
+    private String joinProductIds(List<Integer> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return null;
+        }
+        return productIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
     }
 
     @SuppressWarnings("unchecked")
