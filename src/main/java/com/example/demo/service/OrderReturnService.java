@@ -21,6 +21,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class OrderReturnService {
+    private static final int RETURN_WINDOW_DAYS = 7;
+
     private final OrderReturnRepository orderReturnRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -46,6 +48,8 @@ public class OrderReturnService {
         if (order.getPaymentStatus() != Order.PaymentStatus.PAID) {
             throw new WebErrorConfig(ErrorCode.ORDER_NOT_PAID);
         }
+
+        validateReturnWindow(order);
 
         if (orderReturnRepository.existsByOrderId(orderId)) {
             throw new WebErrorConfig(ErrorCode.ORDER_RETURN_ALREADY_EXISTED);
@@ -166,6 +170,17 @@ public class OrderReturnService {
         }
 
         return orderReturn;
+    }
+
+    private void validateReturnWindow(Order order) {
+        LocalDateTime deliveredAt = historyRepository
+                .findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), Order.OrderStatus.DELIVERED.name())
+                .map(OrderStatusHistory::getCreatedAt)
+                .orElse(order.getUpdatedAt());
+
+        if (deliveredAt == null || deliveredAt.plusDays(RETURN_WINDOW_DAYS).isBefore(LocalDateTime.now())) {
+            throw new WebErrorConfig(ErrorCode.ORDER_RETURN_EXPIRED);
+        }
     }
 
     private void restoreStock(Order order) {
