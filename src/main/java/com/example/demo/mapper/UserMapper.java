@@ -54,6 +54,7 @@ public class UserMapper {
 
     public ProfileResponse userToProfileResponse(User user){
         return ProfileResponse.builder()
+                .userId(user.getId())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
