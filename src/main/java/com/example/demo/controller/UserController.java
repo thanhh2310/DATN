@@ -45,7 +45,7 @@ public class UserController {
     // API CHO QUẢN TRỊ VIÊN (ADMIN)
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN', 'STAFF')")
     public ApiResponse<PageResponse<UserResponse>> getAllUsers(
             @RequestParam(defaultValue = "1") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize

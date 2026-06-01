@@ -45,6 +45,7 @@ public class CategoryMapper {
         CategoryResponse.CategoryResponseBuilder response = CategoryResponse.builder()
                 .id(category.getId())
                 .name(category.getName())
+                .slug(category.getSlug())
                 .imageUrl(category.getImageUrl())
                 .isActive(category.getIsActive())
                 .createdAt(category.getCreatedAt())
