@@ -251,6 +251,7 @@ public class CartService {
             responses.add(CartItemResponse.builder()
                     .id(item.getId())
                     .skuId(sku.getId())
+                    .stockQuantity(sku.getStockQuantity())
                     .productId(sku.getProduct().getId())
                     .productName(sku.getProduct().getName())
                     .imageUrl(helper.resolveSkuImage(sku))

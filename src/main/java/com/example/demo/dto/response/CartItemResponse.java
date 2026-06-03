@@ -13,6 +13,7 @@ import java.util.List;
 public class CartItemResponse {
     Integer id;
     Integer skuId;
+    Integer stockQuantity;
     Integer productId;
     String productName;
     String imageUrl;
