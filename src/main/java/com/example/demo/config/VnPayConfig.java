@@ -11,7 +11,7 @@ import java.util.*;
 @Configuration
 public class VnPayConfig {
     public static String vnp_PayUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
-    public static String vnp_ReturnUrl = "http://localhost:5173/payment-result";
+    public static String vnp_ReturnUrl = "https://tlu-sport-frontend.vercel.app/payment-result";
     public static String vnp_TmnCode = "OGW5X54T"; // Thay bằng mã của bạn
     public static String vnp_HashSecret = "DDTX20GM566N6IESS9QLBD6FO8XPY9RW"; // Thay bằng secret của bạn
     public static String vnp_ApiUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
