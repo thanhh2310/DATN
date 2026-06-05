@@ -46,6 +46,21 @@ public class OrderController {
                 .build();
     }
 
+    @GetMapping("/{orderId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'USER')")
+    public ApiResponse<OrderHistoryResponse> getOrderById(@PathVariable Integer orderId) {
+        Integer currentUserId = helper.getCurrentUserId();
+        boolean isManager = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_STAFF"));
+
+        return ApiResponse.<OrderHistoryResponse>builder()
+                .code(200)
+                .message("Tìm kiếm đơn hàng thành công")
+                .data(orderService.getOrderDetailById(orderId, currentUserId, isManager))
+                .build();
+    }
+
     // 1. ADMIN XÁC NHẬN ĐƠN (PENDING -> PROCESSING)
     @PutMapping("/{orderId}/confirm")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")

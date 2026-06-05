@@ -2,6 +2,7 @@ package com.example.demo.repository;
 
 import com.example.demo.model.CartItem;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -27,4 +28,8 @@ public interface CartItemRepository extends JpaRepository<CartItem, Integer> {
             "JOIN FETCH sku.product p " +
             "WHERE ci.cart.id = :cartId AND ci.id IN :itemIds")
     List<CartItem> findSelectedItems(@Param("cartId") Integer cartId, @Param("itemIds") List<Integer> itemIds);
+
+    @Modifying
+    @Query("DELETE FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.productSku.id IN :skuIds")
+    int deletePaidItems(@Param("cartId") Integer cartId, @Param("skuIds") List<Integer> skuIds);
 }

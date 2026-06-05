@@ -170,8 +170,7 @@ public class OrderService {
 
         paymentRepository.save(payment);
 
-//        cartItemRepository.deleteByCartId(cart.getId());
-        if (!"VNPAY".equalsIgnoreCase(paymentMethod.getCode())) {
+        if ("CASH".equalsIgnoreCase(paymentMethod.getCode())) {
             cartItemRepository.deleteAll(items);
         }
 
@@ -200,6 +199,7 @@ public class OrderService {
                     .build();
             orderStatusHistoryRepository.save(paidHistory);
 
+            deletePaidItemsFromCart(order);
             trackPurchaseForOrder(order);
         }
 
@@ -258,6 +258,7 @@ public class OrderService {
                 paymentRepository.save(existingPayment);
             }
 
+            deletePaidItemsFromCart(order);
             trackPurchaseForOrder(order);
 
         } else {
@@ -298,6 +299,21 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Order getOrderById(Integer orderId) {
         return orderRepository.findById(orderId).orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderHistoryResponse getOrderDetailById(Integer orderId, Integer currentUserId, boolean isManager) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ORDER_NOT_FOUND));
+
+        if (!isManager && (currentUserId == null || order.getUser() == null || !order.getUser().getId().equals(currentUserId))) {
+            throw new WebErrorConfig(ErrorCode.UNAUTHORIZED_ACTION);
+        }
+
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+
+        return mapToOrderHistoryResponse(order, orderItems, payment);
     }
 
     @Transactional(readOnly = true)
@@ -536,6 +552,23 @@ public class OrderService {
                     item.getProductSku().getProduct().getId()
             );
         }
+    }
+
+    private void deletePaidItemsFromCart(Order order) {
+        if (order.getUser() == null) {
+            return;
+        }
+
+        cartRepository.findByUserId(order.getUser().getId()).ifPresent(cart -> {
+            List<Integer> skuIds = orderItemRepository.findByOrderId(order.getId()).stream()
+                    .map(item -> item.getProductSku().getId())
+                    .distinct()
+                    .toList();
+
+            if (!skuIds.isEmpty()) {
+                cartItemRepository.deletePaidItems(cart.getId(), skuIds);
+            }
+        });
     }
 
     @Transactional(readOnly = true)
