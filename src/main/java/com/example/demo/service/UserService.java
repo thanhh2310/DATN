@@ -102,6 +102,28 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
+    public PageResponse<UserResponse> getUsersByRole(String roleName, int pageNumber, int pageSize) {
+        String normalizedRoleName = normalizeRoleName(roleName);
+        roleRepository.findByName(normalizedRoleName)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ROLE_NOT_FOUND));
+
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize,
+                Sort.by("createdAt").descending());
+        Page<User> pageData = userRepository.findByRoleName(normalizedRoleName, pageable);
+
+        List<UserResponse> userResponses = pageData.getContent().stream()
+                .map(userMapper::fromUser)
+                .collect(Collectors.toList());
+
+        return PageResponse.<UserResponse>builder()
+                .currentPage(pageNumber)
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .items(userResponses)
+                .build();
+    }
+
     @Transactional
     public UserResponse createUser(UserCreationRequest request){
         if (userRepository.findByEmail(request.getEmail()).isPresent()){
@@ -167,5 +189,13 @@ public class UserService implements UserDetailsService {
 
             return savedUser;
         });
+    }
+
+    private String normalizeRoleName(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            throw new WebErrorConfig(ErrorCode.ROLE_NOT_FOUND);
+        }
+        String cleanRoleName = roleName.trim().toUpperCase();
+        return cleanRoleName.startsWith("ROLE_") ? cleanRoleName : "ROLE_" + cleanRoleName;
     }
 }

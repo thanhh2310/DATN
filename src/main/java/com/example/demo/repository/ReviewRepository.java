@@ -24,4 +24,6 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
     Long countByProductIdAndIsApprovedTrue(@Param("productId") Integer productId);
     
     Optional<Review> findByUserIdAndOrderItemId(Integer userId, Integer orderItemId);
+
+    long deleteByOrderItem_Order_Id(Integer orderId);
 }

@@ -14,6 +14,7 @@ public enum ErrorCode {
     INVALID_OTP_CODE(9999, "Invalid otp code"),
     USER_NOT_ACTIVE(103, "User is not active"),
     PASSWORD_NOT_CORRECT(104, "Password is not correct"),
+    OAUTH_ACCOUNT_PASSWORD_NOT_ALLOWED(107, "Google login account cannot use password features"),
     UNAUTHENTICATED(9998, "Unauthenticated"),
     EMAIL_OR_PASSWORD_NOT_CORRECT(105, "Email or password is not correct"),
     PASSWORD_NOT_MATCH(106, "Confirm password is not true"),

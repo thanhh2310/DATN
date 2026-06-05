@@ -58,6 +58,21 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/role/{roleName}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ApiResponse<PageResponse<UserResponse>> getUsersByRole(
+            @PathVariable String roleName,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageResponse<UserResponse> response = userService.getUsersByRole(roleName, pageNumber, pageSize);
+        return ApiResponse.<PageResponse<UserResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách người dùng theo role thành công")
+                .data(response)
+                .build();
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)

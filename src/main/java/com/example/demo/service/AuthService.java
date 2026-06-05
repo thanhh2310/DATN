@@ -180,6 +180,7 @@ public class AuthService {
         if (!user.getIsActive() || user.getDeletedAt() != null) {
             throw new WebErrorConfig(ErrorCode.USER_NOT_ACTIVE); // Hoặc mã lỗi phù hợp
         }
+        ensurePasswordLoginAccount(user);
 
         //sinh otp va luu vao redis
         String code = otpService.generateAndStoreOtp(request.getEmail());
@@ -191,14 +192,15 @@ public class AuthService {
     //thuc hien doi mat khau bang otp
     @Transactional
     public void resetPassword(ResetPasswordRequest request){
+        // lay user
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(()-> new WebErrorConfig(ErrorCode.USER_NOT_FOUND));
+        ensurePasswordLoginAccount(user);
+
         // Xac thuc tai khoan
         if(!otpService.validateOtp(request.getEmail(), request.getOtp())){
             throw new WebErrorConfig(ErrorCode.INVALID_OTP_CODE);
         }
-
-        // lay user
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(()-> new WebErrorConfig(ErrorCode.USER_NOT_FOUND));
 
         //Update mat khau moi
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
@@ -216,6 +218,7 @@ public class AuthService {
 
         User currentUser = userRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.USER_NOT_FOUND));
+        ensurePasswordLoginAccount(currentUser);
 
         // Check mật khẩu cũ có đúng không
         if(!passwordEncoder.matches(request.getCurrentPassword(), currentUser.getPassword())){
@@ -229,6 +232,12 @@ public class AuthService {
         currentUser.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(currentUser);
         redisService.deleteAllRefreshTokensOfUser(currentUser.getEmail());
+    }
+
+    private void ensurePasswordLoginAccount(User user) {
+        if (!StringUtils.hasText(user.getPasswordHash())) {
+            throw new WebErrorConfig(ErrorCode.OAUTH_ACCOUNT_PASSWORD_NOT_ALLOWED);
+        }
     }
 
     @Transactional

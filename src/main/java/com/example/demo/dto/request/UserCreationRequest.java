@@ -19,6 +19,7 @@ public class UserCreationRequest {
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
+    @Pattern(regexp = "^\\S+$", message = "Password must not contain whitespace")
     String password;
 
     @NotBlank(message = "First name is required")

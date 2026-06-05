@@ -30,6 +30,7 @@ public class OrderReturnService {
     private final PaymentRepository paymentRepository;
     private final OrderStatusHistoryRepository historyRepository;
     private final UserRepository userRepository;
+    private final ReviewRepository reviewRepository;
     private final WalletService walletService;
 
     @Transactional
@@ -80,6 +81,7 @@ public class OrderReturnService {
         walletService.refundOrder(order, "Hoàn tiền hoàn hàng đơn #" + order.getId() + " vào ví");
         restoreStock(order);
         restoreCouponUsage(order);
+        deleteReviewsForReturnedOrder(order);
 
         order.setOrderStatus(Order.OrderStatus.RETURNED);
         order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
@@ -197,6 +199,10 @@ public class OrderReturnService {
                 coupon.setUsedCount(coupon.getUsedCount() - 1);
             }
         }
+    }
+
+    private void deleteReviewsForReturnedOrder(Order order) {
+        reviewRepository.deleteByOrderItem_Order_Id(order.getId());
     }
 
     private void saveHistory(Order order, String status, String notes) {

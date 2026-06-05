@@ -17,6 +17,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 6, message = "Password must be at least 6 characters")
+    @Pattern(regexp = "^\\S+$", message = "Password must not contain whitespace")
     String password;
 
     @NotBlank(message = "First name cannot be blank")
