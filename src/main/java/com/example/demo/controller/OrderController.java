@@ -75,7 +75,7 @@ public class OrderController {
 
     // 2. ADMIN/NHÂN VIÊN XÁC NHẬN GIAO THÀNH CÔNG (Thay thế complete-cod)
     @PutMapping("/{orderId}/deliver")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF', 'USER')")
     public ApiResponse<?> deliverOrder(@PathVariable Integer orderId) {
         orderService.deliverOrder(orderId);
 
