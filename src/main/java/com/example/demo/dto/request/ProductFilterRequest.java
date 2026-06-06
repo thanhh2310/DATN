@@ -17,6 +17,7 @@ public class ProductFilterRequest {
     BigDecimal minPrice;              // Giá tối thiểu
     BigDecimal maxPrice;              // Giá tối đa
     List<Integer> attributeValueIds;  // Lọc theo giá trị thuộc tính (VD: Màu Đỏ id=1, RAM 8GB id=5)
+    String stockFilter;               // OUT_OF_STOCK (=0), LOW_STOCK (1-10), IN_STOCK (>10)
     String sortBy;                    // Sắp xếp: "price_asc", "price_desc", "newest", "name_asc"...
 
     @Builder.Default

@@ -124,6 +124,25 @@ public class UserService implements UserDetailsService {
                 .build();
     }
 
+    public PageResponse<UserResponse> searchUsers(String keyword, int pageNumber, int pageSize) {
+        String safeKeyword = keyword == null ? "" : keyword.trim();
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize,
+                Sort.by("createdAt").descending());
+        Page<User> pageData = userRepository.searchByKeyword(safeKeyword, pageable);
+
+        List<UserResponse> userResponses = pageData.getContent().stream()
+                .map(userMapper::fromUser)
+                .collect(Collectors.toList());
+
+        return PageResponse.<UserResponse>builder()
+                .currentPage(pageNumber)
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .items(userResponses)
+                .build();
+    }
+
     @Transactional
     public UserResponse createUser(UserCreationRequest request){
         if (userRepository.findByEmail(request.getEmail()).isPresent()){

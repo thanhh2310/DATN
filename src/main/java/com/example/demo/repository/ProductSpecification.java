@@ -2,13 +2,16 @@ package com.example.demo.repository;
 
 import com.example.demo.dto.request.ProductFilterRequest;
 import com.example.demo.model.Product;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +58,12 @@ public class ProductSpecification {
                     spec = spec.and(hasAnyAttributeValueInGroup(idsInGroup));
                 }
             }
+        }
+
+        // 6. Lọc tồn kho. Nếu có attributeValueIds, tồn kho được tính trên SKU khớp các thuộc tính đã chọn.
+        // Ví dụ: Size M = 0, Size L = 32. Lọc OUT_OF_STOCK + Size M vẫn hiển thị sản phẩm.
+        if (request.getStockFilter() != null && !request.getStockFilter().isBlank()) {
+            spec = spec.and(hasStockRange(request.getStockFilter(), groupedAttrValues));
         }
 
         return spec;
@@ -130,5 +139,62 @@ public class ProductSpecification {
     private Specification<Product> hasCategoryIn(Set<Integer> categoryIds) {
         if (categoryIds == null || categoryIds.isEmpty()) return null;
         return (root, query, cb) -> root.get("category").get("id").in(categoryIds);
+    }
+
+    private Specification<Product> hasStockRange(String rawStockFilter, Map<Integer, List<Integer>> groupedAttrValues) {
+        return (root, query, cb) -> {
+            Expression<Integer> totalStock = matchingSkuStockSum(root, query, cb, groupedAttrValues);
+            String stockFilter = normalizeStockFilter(rawStockFilter);
+
+            return switch (stockFilter) {
+                case "OUT_OF_STOCK" -> cb.equal(totalStock, 0);
+                case "LOW_STOCK" -> cb.and(
+                        cb.greaterThan(totalStock, 0),
+                        cb.lessThanOrEqualTo(totalStock, 10)
+                );
+                case "IN_STOCK" -> cb.greaterThan(totalStock, 10);
+                default -> cb.conjunction();
+            };
+        };
+    }
+
+    private Expression<Integer> matchingSkuStockSum(
+            Root<Product> root,
+            jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            Map<Integer, List<Integer>> groupedAttrValues
+    ) {
+        Subquery<Integer> subquery = query.subquery(Integer.class);
+        Root<Product> correlatedProduct = subquery.correlate(root);
+        Join<?, ?> skuJoin = correlatedProduct.join("skus");
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(skuJoin.get("isActive")));
+
+        if (groupedAttrValues != null) {
+            for (List<Integer> idsInGroup : groupedAttrValues.values()) {
+                if (idsInGroup == null || idsInGroup.isEmpty()) {
+                    continue;
+                }
+                Join<?, ?> skuValueJoin = skuJoin.join("skuValues");
+                predicates.add(skuValueJoin.get("attributeValue").get("id").in(idsInGroup));
+            }
+        }
+
+        subquery.select(cb.coalesce(cb.sum(skuJoin.get("stockQuantity")), 0));
+        if (!predicates.isEmpty()) {
+            subquery.where(predicates.toArray(new Predicate[0]));
+        }
+        return subquery;
+    }
+
+    private String normalizeStockFilter(String rawStockFilter) {
+        String value = rawStockFilter.trim().toUpperCase();
+        return switch (value) {
+            case "0", "=0", "OUT", "OUT_OF_STOCK", "HET_HANG" -> "OUT_OF_STOCK";
+            case "<=10", "LOW", "LOW_STOCK", "SAP_HET_HANG" -> "LOW_STOCK";
+            case ">10", "IN", "IN_STOCK", "CON_HANG" -> "IN_STOCK";
+            default -> value;
+        };
     }
 }

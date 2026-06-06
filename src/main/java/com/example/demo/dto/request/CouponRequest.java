@@ -26,7 +26,8 @@ public class CouponRequest {
     String discountType;
 
     @NotNull(message = "Discount value is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Discount must be > 0")
+    @DecimalMin(value = "0.0", inclusive = true, message = "Discount must be >= 0")
+    @DecimalMax(value = "100.0", inclusive = true, message = "Discount must be <= 100")
     BigDecimal discountValue;
 
     @DecimalMin(value = "0.0", inclusive = true, message = "Min order must be >= 0")

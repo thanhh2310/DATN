@@ -73,6 +73,21 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ApiResponse<PageResponse<UserResponse>> searchUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        PageResponse<UserResponse> response = userService.searchUsers(keyword, pageNumber, pageSize);
+        return ApiResponse.<PageResponse<UserResponse>>builder()
+                .code(200)
+                .message("Tìm kiếm người dùng thành công")
+                .data(response)
+                .build();
+    }
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)

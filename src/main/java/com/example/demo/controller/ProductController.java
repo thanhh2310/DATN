@@ -97,6 +97,7 @@ public ApiResponse<PageResponse<ProductResponse>> filterProducts(
         @RequestParam(required = false) BigDecimal minPrice,
         @RequestParam(required = false) BigDecimal maxPrice,
         @RequestParam(required = false) List<Integer> attributeValueIds,
+        @RequestParam(required = false) String stockFilter,
         @RequestParam(required = false) String sortBy,
         @RequestParam(defaultValue = "1") int pageNumber,
         @RequestParam(defaultValue = "10") int pageSize
@@ -107,6 +108,7 @@ public ApiResponse<PageResponse<ProductResponse>> filterProducts(
             .minPrice(minPrice)
             .maxPrice(maxPrice)
             .attributeValueIds(attributeValueIds)
+            .stockFilter(stockFilter)
             .sortBy(sortBy)
             .pageNumber(pageNumber)
             .pageSize(pageSize)
