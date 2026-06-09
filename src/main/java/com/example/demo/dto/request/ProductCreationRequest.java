@@ -35,7 +35,7 @@ public class ProductCreationRequest {
     Integer brandId;
 
     // Danh sách URL ảnh sản phẩm (Frontend đã upload lên Cloudinary và trả về link)
-    @NotEmpty(message = "Phải có ít nhất 1 ảnh sản phẩm")
+//    @NotEmpty(message = "Phải có ít nhất 1 ảnh sản phẩm")
     List<String> imageUrls;
 
     // Các thông số kỹ thuật (Ví dụ: RAM: 8GB, Màn hình: 14 inch)
