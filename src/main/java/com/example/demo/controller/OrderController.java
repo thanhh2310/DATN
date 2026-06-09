@@ -14,6 +14,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -43,6 +45,23 @@ public class OrderController {
                 .code(200)
                 .message("Lấy lịch sử đơn hàng thành công")
                 .data(orderService.getMyOrderHistory(helper.getCurrentUserId(), page, size))
+                .build();
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ApiResponse<PageResponse<OrderHistoryResponse>> searchOrders(
+            @RequestParam(required = false) Integer orderId,
+            @RequestParam(required = false) String paymentMethodCode,
+            @RequestParam(required = false) BigDecimal minTotal,
+            @RequestParam(required = false) BigDecimal maxTotal,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ApiResponse.<PageResponse<OrderHistoryResponse>>builder()
+                .code(200)
+                .message("Tìm kiếm và lọc đơn hàng thành công")
+                .data(orderService.searchOrders(orderId, paymentMethodCode, minTotal, maxTotal, page, size))
                 .build();
     }
 

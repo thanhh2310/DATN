@@ -82,7 +82,8 @@ public enum ErrorCode {
     ORDER_NOT_DELIVERED(916, "Order has not been delivered"),
     ORDER_RETURN_ALREADY_PROCESSED(917, "Order return request already processed"),
     ORDER_RETURN_EXPIRED(918, "Return request period has expired"),
-    CHATBOT_SESSION_NOT_FOUND(919, "Chatbot session not found");
+    CHATBOT_SESSION_NOT_FOUND(919, "Chatbot session not found"),
+    VALUE_MIN_ORDER_IS_NOT_GREATER_VALUE_MAX_ORDER(920, "Giá trị đơn hàng tối thiểu không được lớn hơn tối đa.");
 
     ErrorCode(int code, String message) {
         this.code = code;

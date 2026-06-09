@@ -18,6 +18,23 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     Page<Order> findByUserIdOrderByCreatedAtDesc(Integer userId, Pageable pageable);
 
+    @Query("""
+        SELECT o
+        FROM Order o
+        LEFT JOIN o.paymentMethod pm
+        WHERE (:orderId IS NULL OR o.id = :orderId)
+          AND (:paymentMethodCode IS NULL OR LOWER(pm.code) = LOWER(:paymentMethodCode))
+          AND (:minTotal IS NULL OR o.totalAmount >= :minTotal)
+          AND (:maxTotal IS NULL OR o.totalAmount <= :maxTotal)
+    """)
+    Page<Order> searchOrders(
+            @Param("orderId") Integer orderId,
+            @Param("paymentMethodCode") String paymentMethodCode,
+            @Param("minTotal") BigDecimal minTotal,
+            @Param("maxTotal") BigDecimal maxTotal,
+            Pageable pageable
+    );
+
     @Query("SELECT o FROM Order o WHERE o.paymentStatus = :status AND o.createdAt < :deadline AND o.paymentMethod.code != 'CASH'")
     List<Order> findExpiredUnpaidOnlineOrders(
             @Param("status") Order.PaymentStatus status,

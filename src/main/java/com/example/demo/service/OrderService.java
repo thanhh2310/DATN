@@ -608,6 +608,67 @@ public class OrderService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<OrderHistoryResponse> searchOrders(
+            Integer orderId,
+            String paymentMethodCode,
+            BigDecimal minTotal,
+            BigDecimal maxTotal,
+            int page,
+            int size
+    ) {
+        if (minTotal != null && maxTotal != null && minTotal.compareTo(maxTotal) > 0) {
+            //throw new RuntimeException("Giá trị đơn hàng tối thiểu không được lớn hơn tối đa.");
+            throw new WebErrorConfig(ErrorCode.VALUE_MIN_ORDER_IS_NOT_GREATER_VALUE_MAX_ORDER);
+        }
+
+        int pageNumber = (page > 0) ? page - 1 : 0;
+        Pageable pageable = PageRequest.of(pageNumber, size, org.springframework.data.domain.Sort.by("createdAt").descending());
+        String normalizedPaymentMethodCode = paymentMethodCode != null && !paymentMethodCode.isBlank()
+                ? paymentMethodCode.trim()
+                : null;
+
+        Page<Order> orderPage = orderRepository.searchOrders(
+                orderId,
+                normalizedPaymentMethodCode,
+                minTotal,
+                maxTotal,
+                pageable
+        );
+
+        List<Integer> orderIds = orderPage.getContent().stream()
+                .map(Order::getId)
+                .toList();
+
+        Map<Integer, List<OrderItem>> itemsByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : orderItemRepository.findByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
+
+        Map<Integer, Payment> paymentByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : paymentRepository.findByOrderIdIn(orderIds)
+                .stream()
+                .collect(Collectors.toMap(payment -> payment.getOrder().getId(), payment -> payment, (first, second) -> first));
+
+        List<OrderHistoryResponse> orderResponses = orderPage.getContent().stream()
+                .map(order -> mapToOrderHistoryResponse(
+                        order,
+                        itemsByOrderId.getOrDefault(order.getId(), List.of()),
+                        paymentByOrderId.get(order.getId())
+                ))
+                .toList();
+
+        return PageResponse.<OrderHistoryResponse>builder()
+                .currentPage(page)
+                .totalPage(orderPage.getTotalPages())
+                .pageSize(orderPage.getSize())
+                .totalElements(orderPage.getTotalElements())
+                .items(orderResponses)
+                .build();
+    }
+
     private OrderHistoryResponse mapToOrderHistoryResponse(Order order, List<OrderItem> orderItems, Payment payment) {
         User buyer = order.getUser();
         PaymentMethod paymentMethod = order.getPaymentMethod();
