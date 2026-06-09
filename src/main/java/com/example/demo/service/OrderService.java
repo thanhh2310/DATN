@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -623,18 +624,18 @@ public class OrderService {
         }
 
         int pageNumber = (page > 0) ? page - 1 : 0;
+
+        if (size <= 0) {
+            size = 10;
+        }
+
         Pageable pageable = PageRequest.of(pageNumber, size, org.springframework.data.domain.Sort.by("createdAt").descending());
         String normalizedPaymentMethodCode = paymentMethodCode != null && !paymentMethodCode.isBlank()
                 ? paymentMethodCode.trim()
                 : null;
 
-        Page<Order> orderPage = orderRepository.searchOrders(
-                orderId,
-                normalizedPaymentMethodCode,
-                minTotal,
-                maxTotal,
-                pageable
-        );
+        Specification<Order> spec = OrderSpecification.buildFilter(orderId, normalizedPaymentMethodCode, minTotal, maxTotal);
+        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
 
         List<Integer> orderIds = orderPage.getContent().stream()
                 .map(Order::getId)
@@ -661,7 +662,7 @@ public class OrderService {
                 .toList();
 
         return PageResponse.<OrderHistoryResponse>builder()
-                .currentPage(page)
+                .currentPage(pageNumber + 1)
                 .totalPage(orderPage.getTotalPages())
                 .pageSize(orderPage.getSize())
                 .totalElements(orderPage.getTotalElements())
