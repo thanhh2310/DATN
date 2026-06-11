@@ -93,7 +93,7 @@ public class AbuseProtectionFilter extends OncePerRequestFilter {
         }
 
         if (isUnsafeMethod(method)) {
-            return new Rule("unsafe-api", Scope.PRINCIPAL_OR_IP, 5, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
+            return new Rule("unsafe-api", Scope.PRINCIPAL_OR_IP, 50, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
         }
 
         return new Rule("read-api", Scope.IP, 180, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
