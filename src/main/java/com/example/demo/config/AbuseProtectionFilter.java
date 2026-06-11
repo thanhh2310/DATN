@@ -77,7 +77,7 @@ public class AbuseProtectionFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/auth/forgot-password")
                 || path.startsWith("/api/auth/verify")
                 || path.startsWith("/api/auth/reset-password")) {
-            return new Rule("auth-otp", Scope.IP, 5, Duration.ofMinutes(5), DEFAULT_MAX_BODY_BYTES);
+            return new Rule("auth-otp", Scope.IP, 50, Duration.ofMinutes(5), DEFAULT_MAX_BODY_BYTES);
         }
 
         if (path.startsWith("/api/auth/login")
