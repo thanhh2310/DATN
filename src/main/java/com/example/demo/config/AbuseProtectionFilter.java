@@ -70,6 +70,10 @@ public class AbuseProtectionFilter extends OncePerRequestFilter {
             return new Rule("ai-chat", Scope.PRINCIPAL_OR_IP, 12, Duration.ofMinutes(1), AI_MAX_BODY_BYTES);
         }
 
+        if (path.startsWith("/api/wishlist/check")) {
+            return new Rule("wishlist-check", Scope.PRINCIPAL_OR_IP, 600, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
+        }
+
         if (path.startsWith("/api/auth/forgot-password")
                 || path.startsWith("/api/auth/verify")
                 || path.startsWith("/api/auth/reset-password")) {
