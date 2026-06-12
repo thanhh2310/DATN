@@ -62,17 +62,34 @@ public class ProductController {
                 .build();
     }
 
+    @GetMapping("/isActive")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF')")
+    public ApiResponse<PageResponse<ProductResponse>> getAllProductIsActiveTrue(
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize,
+            @RequestParam Boolean isActive
+    ) {
+        PageResponse<ProductResponse> response =
+                productService.getAllProductIsActive(pageNumber, pageSize, isActive);
+
+        return ApiResponse.<PageResponse<ProductResponse>>builder()
+                .code(200)
+                .message("Lấy danh sách sản phẩm đang active thành công")
+                .data(response)
+                .build();
+    }
+
     @GetMapping("/active")
     public ApiResponse<PageResponse<ProductResponse>> getAllProductIsActive(
             @RequestParam(defaultValue = "1") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize
     ) {
         PageResponse<ProductResponse> response =
-                productService.getAllProductIsActive(pageNumber, pageSize);
+                productService.getAllProductIsActiveTrue(pageNumber, pageSize);
 
         return ApiResponse.<PageResponse<ProductResponse>>builder()
                 .code(200)
-                .message("Lấy danh sách sản phẩm đang active thành công")
+                .message("Lấy danh sách thành công")
                 .data(response)
                 .build();
     }

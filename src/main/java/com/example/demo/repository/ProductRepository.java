@@ -50,5 +50,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer>,
     """)
     List<Product> findAvailableProductsByIds(@Param("ids") Collection<Integer> ids);
 
+    Page<Product> findAllByIsActive(Boolean isActive,Pageable pageable);
     Page<Product> findAllByIsActiveTrue(Pageable pageable);
 }

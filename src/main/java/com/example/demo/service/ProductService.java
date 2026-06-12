@@ -229,7 +229,25 @@ public class ProductService {
                 .build();
     }
 
-    public PageResponse<ProductResponse> getAllProductIsActive(int pageNumber, int pageSize){
+    public PageResponse<ProductResponse> getAllProductIsActive(int pageNumber, int pageSize, Boolean isActive){
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
+
+        Page<Product> pageData = productRepository.findAllByIsActive(isActive, pageable);
+
+        List<ProductResponse> productResponses = pageData.getContent().stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+
+        return PageResponse.<ProductResponse>builder()
+                .currentPage(pageNumber)
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .items(productResponses)
+                .build();
+    }
+
+    public PageResponse<ProductResponse> getAllProductIsActiveTrue(int pageNumber, int pageSize){
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
 
         Page<Product> pageData = productRepository.findAllByIsActiveTrue(pageable);
