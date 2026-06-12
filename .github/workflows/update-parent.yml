@@ -1,0 +1,30 @@
+name: Tự động cập nhật Submodule cho Repo Cha
+
+on:
+  push:
+    branches: [ "main" ] # Nếu nhánh gốc của bạn tên là "master" thì sửa chữ "main" thành "master" nhé.
+
+jobs:
+  update-parent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy code của Repo Cha (ecommerce_AI) về
+        uses: actions/checkout@v4
+        with:
+          repository: thanhh2310/ecommerce_AI
+          token: ${{ secrets.PAT_TOKEN }}
+          submodules: true
+
+      - name: Cập nhật code mới của thư mục demo và push lên
+        run: |
+          # 1. Kéo phiên bản mới nhất của demo
+          git submodule update --remote demo
+          
+          # 2. Khai báo danh tính cho Robot
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          # 3. Commit và Push sự thay đổi lên Repo Cha
+          git add demo
+          git commit -m "🤖 Tự động cập nhật Backend (demo) từ commit mới nhất" || echo "Không có sự thay đổi nào"
+          git push
