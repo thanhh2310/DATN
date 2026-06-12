@@ -24,7 +24,7 @@ public class ProductUpdateRequest {
     @Size(max = 255, message = "Slug không được vượt quá 255 ký tự")
     String slug;
 
-    @Size(max = 5000, message = "Mô tả không được vượt quá 5000 ký tự")
+//    @Size(max = 5000, message = "Mô tả không được vượt quá 5000 ký tự")
     String description;
 
     @Min(value = 0, message = "Giá gốc phải lớn hơn hoặc bằng 0")
