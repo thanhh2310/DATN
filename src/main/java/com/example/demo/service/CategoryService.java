@@ -9,18 +9,15 @@ import com.example.demo.dto.response.PageResponse;
 import com.example.demo.mapper.CategoryMapper;
 import com.example.demo.model.Category;
 import com.example.demo.repository.CategoryRepository;
+import com.example.demo.util.UniqueTextNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,17 +29,22 @@ public class  CategoryService {
 
     @Transactional
     public CategoryResponse createCategory(CategoryCreationRequest request) {
+        validateUniqueCategoryName(request.getName(), null);
+
         // 2. Map dữ liệu cơ bản từ request sang Entity
         Category category = categoryMapper.requestToCategory(request);
+        category.setName(request.getName().trim());
 
         // --- XỬ LÝ SLUG
         if((request.getSlug() != null) &&(!request.getSlug().isEmpty()) ){
-            category.setSlug(request.getSlug());
+            category.setSlug(request.getSlug().trim());
         } else {
             category.setSlug(helper.generateUniqueSlug(request.getName()));
         }
 
-        if (categoryRepository.existsBySlug(request.getSlug())) {
+        validateUniqueCategorySlug(category.getSlug(), null);
+
+        if (categoryRepository.existsBySlug(category.getSlug())) {
             throw new WebErrorConfig(ErrorCode.CATEGORY_ALREADY_EXISTED);
         }
 
@@ -66,15 +68,21 @@ public class  CategoryService {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.CATEGORY_NOT_FOUND));
 
+        validateUniqueCategoryName(request.getName(), id);
+
         // 2. Kiểm tra trùng lặp Slug (Chỉ lỗi nếu slug mới trùng với một Category KHÁC)
-        if (request.getSlug() != null &&
-                !request.getSlug().equals(existingCategory.getSlug()) &&
-                categoryRepository.existsBySlug(request.getSlug())) {
-            throw new WebErrorConfig(ErrorCode.CATEGORY_ALREADY_EXISTED);
+        if (request.getSlug() != null) {
+            validateUniqueCategorySlug(request.getSlug(), id);
+            if (!request.getSlug().equals(existingCategory.getSlug()) &&
+                    categoryRepository.existsBySlug(request.getSlug())) {
+                throw new WebErrorConfig(ErrorCode.CATEGORY_ALREADY_EXISTED);
+            }
         }
 
         // 3. Cập nhật các field cơ bản qua Mapper
         categoryMapper.updateToCategory(request, existingCategory);
+        existingCategory.setName(existingCategory.getName().trim());
+        existingCategory.setSlug(existingCategory.getSlug().trim());
 
         // 4. Xử lý cập nhật Danh mục cha
         if (request.getParentId() == null) {
@@ -173,6 +181,28 @@ public class  CategoryService {
             }
         }
         return false;
+    }
+
+    private void validateUniqueCategoryName(String name, Integer excludedId) {
+        String normalizedName = UniqueTextNormalizer.normalizeForUnique(name);
+        boolean existed = categoryRepository.findAll().stream()
+                .filter(category -> excludedId == null || !category.getId().equals(excludedId))
+                .anyMatch(category -> UniqueTextNormalizer.normalizeForUnique(category.getName()).equals(normalizedName));
+
+        if (existed) {
+            throw new WebErrorConfig(ErrorCode.CATEGORY_ALREADY_EXISTED);
+        }
+    }
+
+    private void validateUniqueCategorySlug(String slug, Integer excludedId) {
+        String normalizedSlug = UniqueTextNormalizer.normalizeForUnique(slug);
+        boolean existed = categoryRepository.findAll().stream()
+                .filter(category -> excludedId == null || !category.getId().equals(excludedId))
+                .anyMatch(category -> UniqueTextNormalizer.normalizeForUnique(category.getSlug()).equals(normalizedSlug));
+
+        if (existed) {
+            throw new WebErrorConfig(ErrorCode.CATEGORY_ALREADY_EXISTED);
+        }
     }
 
 }

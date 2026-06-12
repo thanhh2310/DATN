@@ -87,7 +87,8 @@ public enum ErrorCode {
     ATTRIBUTE_VALUE_ALREADY_EXISTED(921, "Attribute value already existed"),
     ATTRIBUTE_VALUE_IN_USE(922, "Attribute value is being used by product, product sku or product spec"),
     ATTRIBUTE_IN_USE(923, "Attribute is being used by product, product sku or product spec"),
-    EMAIL_SEND_FAILED(924, "Cannot send OTP to this email address");
+    EMAIL_SEND_FAILED(924, "Cannot send OTP to this email address"),
+    PRODUCT_ALREADY_EXISTED(925, "Product already existed");
 
     ErrorCode(int code, String message) {
         this.code = code;

@@ -8,6 +8,7 @@ import com.example.demo.model.Attribute;
 import com.example.demo.model.AttributeValue;
 import com.example.demo.repository.AttributeRepository;
 import com.example.demo.repository.AttributeValueRepository;
+import com.example.demo.util.UniqueTextNormalizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,7 @@ public class AttributeValueService {
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
 
         String normalizedValue = normalizeRequiredValue(value);
-        if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCase(attributeId, normalizedValue)) {
+        if (existsEquivalentAttributeValue(attributeId, normalizedValue, null)) {
             throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
         }
 
@@ -51,11 +52,7 @@ public class AttributeValueService {
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND));
 
         String normalizedValue = normalizeRequiredValue(request.getValue());
-        if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCaseAndIdNot(
-                attributeValue.getAttribute().getId(),
-                normalizedValue,
-                id
-        )) {
+        if (existsEquivalentAttributeValue(attributeValue.getAttribute().getId(), normalizedValue, id)) {
             throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
         }
 
@@ -92,5 +89,14 @@ public class AttributeValueService {
 
     private String normalizeOptionalValue(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private boolean existsEquivalentAttributeValue(Integer attributeId, String value, Integer excludedId) {
+        String normalizedValue = UniqueTextNormalizer.normalizeForUnique(value);
+        return attributeValueRepository.findAll().stream()
+                .filter(attributeValue -> attributeValue.getAttribute() != null)
+                .filter(attributeValue -> attributeValue.getAttribute().getId().equals(attributeId))
+                .filter(attributeValue -> excludedId == null || !attributeValue.getId().equals(excludedId))
+                .anyMatch(attributeValue -> UniqueTextNormalizer.normalizeForUnique(attributeValue.getValue()).equals(normalizedValue));
     }
 }

@@ -12,6 +12,7 @@ import com.example.demo.dto.response.ProductResponse;
 import com.example.demo.mapper.ProductMapper;
 import com.example.demo.model.*;
 import com.example.demo.repository.*;
+import com.example.demo.util.UniqueTextNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -39,6 +40,8 @@ public class ProductService {
 
     @Transactional
     public void createProductDetail(ProductCreationRequest request) {
+        validateUniqueProductName(request.getName(), null);
+        validateUniqueProductSlug(request.getSlug(), null);
 
         // 1. Kiểm tra Category và Brand có tồn tại không
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -68,8 +71,8 @@ public class ProductService {
 
         // 2. Lưu bảng cha: PRODUCT (Bổ sung hàm check trùng Slug nếu cần)
         Product product = Product.builder()
-                .name(request.getName())
-                .slug(request.getSlug())
+                .name(request.getName().trim())
+                .slug(request.getSlug().trim())
                 .description(request.getDescription())
                 .basePrice(request.getBasePrice())
                 .category(category)
@@ -198,6 +201,9 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.PRODUCT_NOT_FOUND));
 
+        validateUniqueProductName(request.getName(), id);
+        validateUniqueProductSlug(request.getSlug(), id);
+
         // Trả về DTO chứa đầy đủ thông tin: Core, Images, Specs, SKUs
         return productMapper.toProductResponse(product);
     }
@@ -243,8 +249,8 @@ public class ProductService {
             product.setBrand(brand);
         }
 
-        product.setName(request.getName());
-        product.setSlug(request.getSlug());
+        product.setName(request.getName().trim());
+        product.setSlug(request.getSlug().trim());
         product.setDescription(request.getDescription());
         product.setBasePrice(request.getBasePrice());
         product.setIsActive(request.getIsActive());
@@ -492,6 +498,28 @@ public class ProductService {
             if (!attributeIds.add(attrValue.getAttribute().getId())) {
                 throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_IN_SPECS);
             }
+        }
+    }
+
+    private void validateUniqueProductName(String name, Integer excludedId) {
+        String normalizedName = UniqueTextNormalizer.normalizeForUnique(name);
+        boolean existed = productRepository.findAll().stream()
+                .filter(product -> excludedId == null || !product.getId().equals(excludedId))
+                .anyMatch(product -> UniqueTextNormalizer.normalizeForUnique(product.getName()).equals(normalizedName));
+
+        if (existed) {
+            throw new WebErrorConfig(ErrorCode.PRODUCT_ALREADY_EXISTED);
+        }
+    }
+
+    private void validateUniqueProductSlug(String slug, Integer excludedId) {
+        String normalizedSlug = UniqueTextNormalizer.normalizeForUnique(slug);
+        boolean existed = productRepository.findAll().stream()
+                .filter(product -> excludedId == null || !product.getId().equals(excludedId))
+                .anyMatch(product -> UniqueTextNormalizer.normalizeForUnique(product.getSlug()).equals(normalizedSlug));
+
+        if (existed) {
+            throw new WebErrorConfig(ErrorCode.SLUG_ALREADY_EXISTED);
         }
     }
 

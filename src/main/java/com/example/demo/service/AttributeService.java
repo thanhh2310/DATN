@@ -12,6 +12,7 @@ import com.example.demo.model.Attribute;
 import com.example.demo.model.AttributeValue;
 import com.example.demo.repository.AttributeRepository;
 import com.example.demo.repository.AttributeValueRepository;
+import com.example.demo.util.UniqueTextNormalizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,7 @@ public class AttributeService {
         String attributeName = normalizeRequiredValue(request.getName());
         validateUniqueValueNames(request.getValues());
 
-        if(attributeRepository.existsByNameIgnoreCase(attributeName)){
+        if(existsEquivalentAttributeName(attributeName, null)){
             throw new WebErrorConfig(ErrorCode.ATTRIBUTE_ALREADY_EXISTED);
         }
 
@@ -93,8 +94,8 @@ public class AttributeService {
         // Validate trùng tên (Nếu đổi tên thì phải check xem tên mới có trùng ai không)
         if (request.getName() != null) {
             String normalizedName = normalizeRequiredValue(request.getName());
-            if(!normalizedName.equalsIgnoreCase(attribute.getName())
-                    && attributeRepository.existsByNameIgnoreCaseAndIdNot(normalizedName, id)){
+            if(!UniqueTextNormalizer.normalizeForUnique(normalizedName).equals(UniqueTextNormalizer.normalizeForUnique(attribute.getName()))
+                    && existsEquivalentAttributeName(normalizedName, id)){
                 throw new WebErrorConfig(ErrorCode.ATTRIBUTE_ALREADY_EXISTED);
             }
             attribute.setName(normalizedName);
@@ -131,11 +132,7 @@ public class AttributeService {
                     }
 
                     String normalizedValue = normalizeRequiredValue(valReq.getValue());
-                    if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCaseAndIdNot(
-                            attribute.getId(),
-                            normalizedValue,
-                            existing.getId()
-                    )) {
+                    if (existsEquivalentAttributeValue(attribute.getId(), normalizedValue, existing.getId())) {
                         throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
                     }
 
@@ -144,7 +141,7 @@ public class AttributeService {
                     requestIds.add(valReq.getId());
                 }else {
                     String normalizedValue = normalizeRequiredValue(valReq.getValue());
-                    if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCase(attribute.getId(), normalizedValue)) {
+                    if (existsEquivalentAttributeValue(attribute.getId(), normalizedValue, null)) {
                         throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
                     }
 
@@ -206,7 +203,7 @@ public class AttributeService {
                 throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
             }
 
-            String normalizedValue = normalizeRequiredValue(rawValue).toLowerCase();
+            String normalizedValue = UniqueTextNormalizer.normalizeForUnique(normalizeRequiredValue(rawValue));
             if (!seen.add(normalizedValue)) {
                 throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
             }
@@ -227,6 +224,22 @@ public class AttributeService {
     private boolean isAttributeValueInUse(Integer attributeValueId) {
         return attributeValueRepository.isUsedInProductSpecs(attributeValueId)
                 || attributeValueRepository.isUsedInSkuValues(attributeValueId);
+    }
+
+    private boolean existsEquivalentAttributeName(String name, Integer excludedId) {
+        String normalizedName = UniqueTextNormalizer.normalizeForUnique(name);
+        return attributeRepository.findAll().stream()
+                .filter(attribute -> excludedId == null || !attribute.getId().equals(excludedId))
+                .anyMatch(attribute -> UniqueTextNormalizer.normalizeForUnique(attribute.getName()).equals(normalizedName));
+    }
+
+    private boolean existsEquivalentAttributeValue(Integer attributeId, String value, Integer excludedId) {
+        String normalizedValue = UniqueTextNormalizer.normalizeForUnique(value);
+        return attributeValueRepository.findAll().stream()
+                .filter(attributeValue -> attributeValue.getAttribute() != null)
+                .filter(attributeValue -> attributeValue.getAttribute().getId().equals(attributeId))
+                .filter(attributeValue -> excludedId == null || !attributeValue.getId().equals(excludedId))
+                .anyMatch(attributeValue -> UniqueTextNormalizer.normalizeForUnique(attributeValue.getValue()).equals(normalizedValue));
     }
 
 }
