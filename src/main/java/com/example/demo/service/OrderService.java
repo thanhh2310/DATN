@@ -612,6 +612,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public PageResponse<OrderHistoryResponse> searchOrders(
             Integer orderId,
+            String orderStatus,
             String paymentMethodCode,
             BigDecimal minTotal,
             BigDecimal maxTotal,
@@ -633,8 +634,9 @@ public class OrderService {
         String normalizedPaymentMethodCode = paymentMethodCode != null && !paymentMethodCode.isBlank()
                 ? paymentMethodCode.trim()
                 : null;
+        Order.OrderStatus normalizedOrderStatus = parseOrderStatus(orderStatus);
 
-        Specification<Order> spec = OrderSpecification.buildFilter(orderId, normalizedPaymentMethodCode, minTotal, maxTotal);
+        Specification<Order> spec = OrderSpecification.buildFilter(orderId, normalizedOrderStatus, normalizedPaymentMethodCode, minTotal, maxTotal);
         Page<Order> orderPage = orderRepository.findAll(spec, pageable);
 
         List<Integer> orderIds = orderPage.getContent().stream()
@@ -668,6 +670,18 @@ public class OrderService {
                 .totalElements(orderPage.getTotalElements())
                 .items(orderResponses)
                 .build();
+    }
+
+    private Order.OrderStatus parseOrderStatus(String orderStatus) {
+        if (orderStatus == null || orderStatus.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Order.OrderStatus.valueOf(orderStatus.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ORDER_STATUS);
+        }
     }
 
     private OrderHistoryResponse mapToOrderHistoryResponse(Order order, List<OrderItem> orderItems, Payment payment) {

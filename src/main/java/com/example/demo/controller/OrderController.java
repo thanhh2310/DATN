@@ -52,6 +52,7 @@ public class OrderController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<PageResponse<OrderHistoryResponse>> searchOrders(
             @RequestParam(required = false) Integer orderId,
+            @RequestParam(required = false) String orderStatus,
             @RequestParam(required = false) String paymentMethodCode,
             @RequestParam(required = false) BigDecimal minTotal,
             @RequestParam(required = false) BigDecimal maxTotal,
@@ -61,7 +62,7 @@ public class OrderController {
         return ApiResponse.<PageResponse<OrderHistoryResponse>>builder()
                 .code(200)
                 .message("Tìm kiếm và lọc đơn hàng thành công")
-                .data(orderService.searchOrders(orderId, paymentMethodCode, minTotal, maxTotal, page, size))
+                .data(orderService.searchOrders(orderId, orderStatus, paymentMethodCode, minTotal, maxTotal, page, size))
                 .build();
     }
 

@@ -17,6 +17,7 @@ public class OrderSpecification {
 
     public static Specification<Order> buildFilter(
             Integer orderId,
+            Order.OrderStatus orderStatus,
             String paymentMethodCode,
             BigDecimal minTotal,
             BigDecimal maxTotal
@@ -27,6 +28,10 @@ public class OrderSpecification {
 
             if (orderId != null) {
                 predicates.add(cb.equal(root.get("id"), orderId));
+            }
+
+            if (orderStatus != null) {
+                predicates.add(cb.equal(root.get("orderStatus"), orderStatus));
             }
 
             if (paymentMethodCode != null && !paymentMethodCode.isBlank()) {
