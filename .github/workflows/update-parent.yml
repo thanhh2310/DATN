@@ -2,7 +2,7 @@ name: Tự động cập nhật Submodule cho Repo Cha
 
 on:
   push:
-    branches: [ "main" ] # Nếu nhánh gốc của bạn tên là "master" thì sửa chữ "main" thành "master" nhé.
+    branches: [ "master" ]
 
 jobs:
   update-parent:
