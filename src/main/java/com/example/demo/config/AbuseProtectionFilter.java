@@ -82,14 +82,14 @@ public class AbuseProtectionFilter extends OncePerRequestFilter {
 
         if (path.startsWith("/api/auth/login")
                 || path.startsWith("/api/auth/register")) {
-            return new Rule("auth-entry", Scope.IP, 10, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
+            return new Rule("auth-entry", Scope.IP, 50, Duration.ofMinutes(1), DEFAULT_MAX_BODY_BYTES);
         }
 
         if (path.startsWith("/api/orders")
                 || path.startsWith("/api/checkout")
                 || path.startsWith("/api/payment")
                 || path.startsWith("/api/wallet")) {
-            return new Rule("business-mutation", Scope.PRINCIPAL_OR_IP, 30, Duration.ofMinutes(1), CHECKOUT_MAX_BODY_BYTES);
+            return new Rule("business-mutation", Scope.PRINCIPAL_OR_IP, 50, Duration.ofMinutes(1), CHECKOUT_MAX_BODY_BYTES);
         }
 
         if (isUnsafeMethod(method)) {
