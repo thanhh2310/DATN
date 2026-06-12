@@ -201,8 +201,8 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.PRODUCT_NOT_FOUND));
 
-        validateUniqueProductName(request.getName(), id);
-        validateUniqueProductSlug(request.getSlug(), id);
+//        validateUniqueProductName(request.getName(), id);
+//        validateUniqueProductSlug(request.getSlug(), id);
 
         // Trả về DTO chứa đầy đủ thông tin: Core, Images, Specs, SKUs
         return productMapper.toProductResponse(product);
@@ -215,6 +215,24 @@ public class ProductService {
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
 
         Page<Product> pageData = productRepository.findAll(pageable);
+
+        List<ProductResponse> productResponses = pageData.getContent().stream()
+                .map(productMapper::toProductResponse)
+                .toList();
+
+        return PageResponse.<ProductResponse>builder()
+                .currentPage(pageNumber)
+                .pageSize(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPage(pageData.getTotalPages())
+                .items(productResponses)
+                .build();
+    }
+
+    public PageResponse<ProductResponse> getAllProductIsActive(int pageNumber, int pageSize){
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by("createdAt").descending());
+
+        Page<Product> pageData = productRepository.findAllByIsActiveTrue(pageable);
 
         List<ProductResponse> productResponses = pageData.getContent().stream()
                 .map(productMapper::toProductResponse)

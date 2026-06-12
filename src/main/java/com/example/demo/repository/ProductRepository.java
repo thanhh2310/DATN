@@ -49,4 +49,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer>,
           AND sku.stockQuantity > 0
     """)
     List<Product> findAvailableProductsByIds(@Param("ids") Collection<Integer> ids);
+
+    Page<Product> findAllByIsActiveTrue(Pageable pageable);
 }
