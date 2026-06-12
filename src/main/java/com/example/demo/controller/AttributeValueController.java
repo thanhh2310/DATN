@@ -4,14 +4,19 @@ import com.example.demo.dto.request.AttributeValueUpdateRequest;
 import com.example.demo.dto.response.ApiResponse;
 import com.example.demo.dto.response.AttributeValueResponse;
 import com.example.demo.service.AttributeValueService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/attributes")
 @RequiredArgsConstructor
+@Validated
 public class AttributeValueController {
     private final AttributeValueService attributeValueService;
 
@@ -19,8 +24,8 @@ public class AttributeValueController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeValueResponse> addValue(
             @PathVariable Integer attributeId,
-            @RequestParam String value,
-            @RequestParam(required = false) String description) {
+            @RequestParam @NotBlank(message = "Value cannot be empty") @Size(max = 100, message = "Value must be <= 100 characters") String value,
+            @RequestParam(required = false) @Size(max = 500, message = "Description must be <= 500 characters") String description) {
         AttributeValueResponse response =
                 attributeValueService.addValue(attributeId, value, description);
 
@@ -35,7 +40,7 @@ public class AttributeValueController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<AttributeValueResponse> updateValue(
             @PathVariable Integer id,
-            @RequestBody AttributeValueUpdateRequest request) {
+            @Valid @RequestBody AttributeValueUpdateRequest request) {
         AttributeValueResponse response =
                 attributeValueService.updateValue(id, request);
 

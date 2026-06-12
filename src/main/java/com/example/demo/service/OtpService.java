@@ -69,7 +69,7 @@ public class OtpService {
         return false;
     }
 
-    public void deleteOtp(String gmail){
-
+    public void deleteOtp(String email){
+        redisTemplate.delete(OTP_PREFIX + email);
     }
 }

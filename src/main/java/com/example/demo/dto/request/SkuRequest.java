@@ -3,6 +3,7 @@ package com.example.demo.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -17,6 +18,7 @@ import java.util.List;
 public class SkuRequest {
 
     @NotBlank(message = "Mã SKU không được để trống")
+    @Size(max = 100, message = "Mã SKU không được vượt quá 100 ký tự")
     String skuCode;
 
     @NotNull(message = "Giá SKU không được để trống")

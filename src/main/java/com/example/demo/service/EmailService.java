@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,7 +14,6 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-    @Async
     public void sendVerificationCode(String toEmail, String code){
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -26,7 +24,6 @@ public class EmailService {
         javaMailSender.send(message);
     }
 
-    @Async
     public void sendResetPasswordOtp(String email, String code) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);

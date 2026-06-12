@@ -11,6 +11,7 @@ import com.example.demo.model.User;
 import com.example.demo.repository.CartRepository;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.MailException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -65,7 +66,7 @@ public class AuthService {
 
             // Tạo và gửi OTP MỚI
             String code = otpService.generateAndStoreOtp(existingUser.getEmail());
-            emailService.sendVerificationCode(existingUser.getEmail(), code);
+            sendVerificationOtpOrThrow(existingUser.getEmail(), code);
 
             // RẤT QUAN TRỌNG: return luôn tại đây để KẾT THÚC HÀM.
             // Không chạy xuống đoạn tạo User mới và tạo Giỏ hàng mới ở dưới nữa!
@@ -82,7 +83,7 @@ public class AuthService {
 
         //tao va gui otp qua email
         String code = otpService.generateAndStoreOtp(request.getEmail());
-        emailService.sendVerificationCode(request.getEmail(), code);
+        sendVerificationOtpOrThrow(request.getEmail(), code);
     }
 
     // xac thuc tai khoan
@@ -186,7 +187,7 @@ public class AuthService {
         String code = otpService.generateAndStoreOtp(request.getEmail());
 
         // gui email
-        emailService.sendResetPasswordOtp(user.getEmail(), code);
+        sendResetPasswordOtpOrThrow(user.getEmail(), code);
     }
 
     //thuc hien doi mat khau bang otp
@@ -237,6 +238,24 @@ public class AuthService {
     private void ensurePasswordLoginAccount(User user) {
         if (!StringUtils.hasText(user.getPasswordHash())) {
             throw new WebErrorConfig(ErrorCode.OAUTH_ACCOUNT_PASSWORD_NOT_ALLOWED);
+        }
+    }
+
+    private void sendVerificationOtpOrThrow(String email, String code) {
+        try {
+            emailService.sendVerificationCode(email, code);
+        } catch (MailException exception) {
+            otpService.deleteOtp(email);
+            throw new WebErrorConfig(ErrorCode.EMAIL_SEND_FAILED);
+        }
+    }
+
+    private void sendResetPasswordOtpOrThrow(String email, String code) {
+        try {
+            emailService.sendResetPasswordOtp(email, code);
+        } catch (MailException exception) {
+            otpService.deleteOtp(email);
+            throw new WebErrorConfig(ErrorCode.EMAIL_SEND_FAILED);
         }
     }
 

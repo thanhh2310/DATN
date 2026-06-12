@@ -61,13 +61,10 @@ public class ProductService {
 
         // Validate: Không có attributeValueId trùng lặp trong danh sách specs
         if (request.getSpecs() != null && !request.getSpecs().isEmpty()) {
-            Set<Integer> specAttrValueIds = request.getSpecs().stream()
-                    .map(ProductSpecRequest::getAttributeValueId)
-                    .collect(Collectors.toSet());
-            if (specAttrValueIds.size() != request.getSpecs().size()) {
-                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
-            }
+            validateUniqueSpecAttributeValueIds(request.getSpecs());
         }
+
+        validateUniqueSkuAttributeValues(request.getSkus());
 
         // 2. Lưu bảng cha: PRODUCT (Bổ sung hàm check trùng Slug nếu cần)
         Product product = Product.builder()
@@ -117,6 +114,9 @@ public class ProductService {
                 if (!validAttributeIds.contains(attributeValue.getAttribute().getId())) {
                     throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_ALLOWED_FOR_CATEGORY);
                 }
+                if (!attributeValue.getAttribute().getId().equals(specReq.getAttributeId())) {
+                    throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
+                }
 
                 specs.add(ProductSpec.builder()
                         .product(product)
@@ -164,8 +164,11 @@ public class ProductService {
                 }
 
                 if (skuReq.getAttributeValueIds() != null && !skuReq.getAttributeValueIds().isEmpty()) {
+                    validateUniqueIntegerIds(skuReq.getAttributeValueIds());
                     List<AttributeValue> attrValues = attributeValueRepository
                             .findAllById(skuReq.getAttributeValueIds());
+                    validateAllAttributeValuesExist(skuReq.getAttributeValueIds(), attrValues);
+                    validateOneValuePerAttribute(attrValues);
 
                     for (AttributeValue attrValue : attrValues) {
                         // Validate quan trọng: Giá trị thuộc tính này có thuộc về 1 Thuộc tính được
@@ -261,15 +264,12 @@ public class ProductService {
 
         // 3. Cập nhật Thông số kỹ thuật chung (Smart Update chuẩn JPA)
         if (request.getSpecs() != null) {
+            validateUniqueSpecAttributeValueIds(request.getSpecs());
+
             // Bước A: Gom danh sách ID các thông số mà Frontend gửi lên
             Set<Integer> newAttrValueIds = request.getSpecs().stream()
                     .map(ProductSpecRequest::getAttributeValueId)
                     .collect(Collectors.toSet());
-
-            // Validate: Không có attributeValueId trùng lặp trong request (Bạn làm rất chuẩn)
-            if (newAttrValueIds.size() != request.getSpecs().size()) {
-                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
-            }
 
             // Bước B: XÓA các thông số cũ trong RAM nếu Frontend không gửi lên nữa
             // Hibernate sẽ tự động hiểu và xếp lịch DELETE dưới DB
@@ -290,6 +290,9 @@ public class ProductService {
                     AttributeValue attributeValue = attributeValueMap.get(specReq.getAttributeValueId());
                     if (attributeValue == null) {
                         throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+                    }
+                    if (!attributeValue.getAttribute().getId().equals(specReq.getAttributeId())) {
+                        throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
                     }
 
                     // CHÚ Ý: Add thẳng vào List của Product, tuyệt đối không dùng productSpecRepository.save()
@@ -439,6 +442,57 @@ public class ProductService {
         }
 
         return result;
+    }
+
+    private void validateUniqueSpecAttributeValueIds(List<ProductSpecRequest> specs) {
+        validateUniqueIntegerIds(specs.stream()
+                .map(ProductSpecRequest::getAttributeValueId)
+                .toList());
+    }
+
+    private void validateUniqueSkuAttributeValues(List<ProductSkuRequest> skus) {
+        if (skus == null) {
+            return;
+        }
+
+        Set<String> skuCodes = new HashSet<>();
+        for (ProductSkuRequest sku : skus) {
+            if (sku.getSkuCode() != null && !skuCodes.add(sku.getSkuCode().trim().toLowerCase())) {
+                throw new WebErrorConfig(ErrorCode.SKU_CODE_ALREADY_EXISTED);
+            }
+            if (sku.getAttributeValueIds() != null) {
+                validateUniqueIntegerIds(sku.getAttributeValueIds());
+            }
+        }
+    }
+
+    private void validateUniqueIntegerIds(List<Integer> ids) {
+        if (ids == null) {
+            return;
+        }
+
+        if (ids.stream().anyMatch(Objects::isNull)) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
+        }
+
+        if (new HashSet<>(ids).size() != ids.size()) {
+            throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
+        }
+    }
+
+    private void validateAllAttributeValuesExist(List<Integer> requestedIds, List<AttributeValue> attrValues) {
+        if (attrValues.size() != new HashSet<>(requestedIds).size()) {
+            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+        }
+    }
+
+    private void validateOneValuePerAttribute(List<AttributeValue> attrValues) {
+        Set<Integer> attributeIds = new HashSet<>();
+        for (AttributeValue attrValue : attrValues) {
+            if (!attributeIds.add(attrValue.getAttribute().getId())) {
+                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_IN_SPECS);
+            }
+        }
     }
 
 

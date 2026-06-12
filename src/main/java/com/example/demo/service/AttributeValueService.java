@@ -25,10 +25,15 @@ public class AttributeValueService {
         Attribute attribute = attributeRepository.findById(attributeId)
                 .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
 
+        String normalizedValue = normalizeRequiredValue(value);
+        if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCase(attributeId, normalizedValue)) {
+            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
+        }
+
         AttributeValue newValue = AttributeValue.builder()
                 .attribute(attribute)
-                .value(value)
-                .description(description)
+                .value(normalizedValue)
+                .description(normalizeOptionalValue(description))
                 .build();
 
         newValue = attributeValueRepository.save(newValue);
@@ -43,10 +48,19 @@ public class AttributeValueService {
     @Transactional
     public AttributeValueResponse updateValue(Integer id, AttributeValueUpdateRequest request) {
         AttributeValue attributeValue = attributeValueRepository.findById(id)
-                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND));
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND));
 
-        attributeValue.setValue(request.getValue());
-        attributeValue.setDescription(request.getDescription());
+        String normalizedValue = normalizeRequiredValue(request.getValue());
+        if (attributeValueRepository.existsByAttributeIdAndValueIgnoreCaseAndIdNot(
+                attributeValue.getAttribute().getId(),
+                normalizedValue,
+                id
+        )) {
+            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_ALREADY_EXISTED);
+        }
+
+        attributeValue.setValue(normalizedValue);
+        attributeValue.setDescription(normalizeOptionalValue(request.getDescription()));
         attributeValue = attributeValueRepository.save(attributeValue);
 
         return AttributeValueResponse.builder()
@@ -58,9 +72,25 @@ public class AttributeValueService {
 
     @Transactional
     public void deleteValue(Integer id) {
-        if (!attributeValueRepository.existsById(id)) {
-            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_NOT_FOUND);
+        AttributeValue attributeValue = attributeValueRepository.findById(id)
+                .orElseThrow(() -> new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND));
+
+        if (attributeValueRepository.isUsedInProductSpecs(attributeValue.getId())
+                || attributeValueRepository.isUsedInSkuValues(attributeValue.getId())) {
+            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_IN_USE);
         }
-        attributeValueRepository.deleteById(id);
+
+        attributeValueRepository.delete(attributeValue);
+    }
+
+    private String normalizeRequiredValue(String value) {
+        if (value == null || value.isBlank()) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
+        }
+        return value.trim();
+    }
+
+    private String normalizeOptionalValue(String value) {
+        return value == null ? null : value.trim();
     }
 }

@@ -83,7 +83,11 @@ public enum ErrorCode {
     ORDER_RETURN_ALREADY_PROCESSED(917, "Order return request already processed"),
     ORDER_RETURN_EXPIRED(918, "Return request period has expired"),
     CHATBOT_SESSION_NOT_FOUND(919, "Chatbot session not found"),
-    VALUE_MIN_ORDER_IS_NOT_GREATER_VALUE_MAX_ORDER(920, "Giá trị đơn hàng tối thiểu không được lớn hơn tối đa.");
+    VALUE_MIN_ORDER_IS_NOT_GREATER_VALUE_MAX_ORDER(920, "Giá trị đơn hàng tối thiểu không được lớn hơn tối đa."),
+    ATTRIBUTE_VALUE_ALREADY_EXISTED(921, "Attribute value already existed"),
+    ATTRIBUTE_VALUE_IN_USE(922, "Attribute value is being used by product, product sku or product spec"),
+    ATTRIBUTE_IN_USE(923, "Attribute is being used by product, product sku or product spec"),
+    EMAIL_SEND_FAILED(924, "Cannot send OTP to this email address");
 
     ErrorCode(int code, String message) {
         this.code = code;

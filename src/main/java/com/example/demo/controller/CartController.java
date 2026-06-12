@@ -6,12 +6,17 @@ import com.example.demo.dto.request.*;
 import com.example.demo.dto.response.*;
 import com.example.demo.service.CartService;
 import com.example.demo.service.Helper;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/cart")
 @RequiredArgsConstructor
+@Validated
 public class CartController {
     private final CartService cartService;
     private final Helper helper;
@@ -31,7 +36,7 @@ public class CartController {
     }
 
     @PostMapping("/detail")
-    public ApiResponse<CartDetailResponse> getCartDetail(@RequestBody CartCreationRequest request) {
+    public ApiResponse<CartDetailResponse> getCartDetail(@Valid @RequestBody CartCreationRequest request) {
         secureRequest(request);
         return ApiResponse.<CartDetailResponse>builder()
                 .code(200)
@@ -42,9 +47,9 @@ public class CartController {
 
     @PostMapping("/add")
     public ApiResponse<CartDetailResponse> addItem(
-            @RequestBody CartCreationRequest cartReq,
-            @RequestParam Integer skuId,
-            @RequestParam Integer quantity
+            @Valid @RequestBody CartCreationRequest cartReq,
+            @RequestParam @NotNull(message = "SKU ID không được để trống") Integer skuId,
+            @RequestParam @NotNull(message = "Số lượng không được để trống") @Min(value = 1, message = "Số lượng phải lớn hơn 0") Integer quantity
     ) {
         secureRequest(cartReq);
         CartItemRequest itemReq = CartItemRequest.builder()
@@ -62,8 +67,8 @@ public class CartController {
     @PutMapping("/item/{itemId}")
     public ApiResponse<CartDetailResponse> updateItem(
             @PathVariable Integer itemId,
-            @RequestBody CartCreationRequest cartReq,
-            @RequestParam Integer quantity
+            @Valid @RequestBody CartCreationRequest cartReq,
+            @RequestParam @NotNull(message = "Số lượng không được để trống") @Min(value = 1, message = "Số lượng phải lớn hơn 0") Integer quantity
     ) {
         secureRequest(cartReq);
         CartItemUpdateRequest req = CartItemUpdateRequest.builder()
@@ -80,7 +85,7 @@ public class CartController {
     @DeleteMapping("/item/{itemId}")
     public ApiResponse<CartDetailResponse> removeItem(
             @PathVariable Integer itemId,
-            @RequestBody CartCreationRequest cartReq
+            @Valid @RequestBody CartCreationRequest cartReq
     ) {
         secureRequest(cartReq);
         return ApiResponse.<CartDetailResponse>builder()
@@ -92,7 +97,7 @@ public class CartController {
 
     @DeleteMapping("/clear")
     public ApiResponse<CartDetailResponse> clearCart(
-            @RequestBody CartCreationRequest request
+            @Valid @RequestBody CartCreationRequest request
     ) {
         secureRequest(request);
         return ApiResponse.<CartDetailResponse>builder()

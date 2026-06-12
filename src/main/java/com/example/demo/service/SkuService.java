@@ -56,7 +56,11 @@ public class SkuService {
         }
 
         if (request.getAttributeValueIds() != null && !request.getAttributeValueIds().isEmpty()) {
+            validateUniqueIntegerIds(request.getAttributeValueIds());
             List<AttributeValue> attrValues = attributeValueRepository.findAllById(request.getAttributeValueIds());
+            validateAllAttributeValuesExist(request.getAttributeValueIds(), attrValues);
+            validateOneValuePerAttribute(attrValues);
+
             for (AttributeValue attrValue : attrValues) {
                 SkuValue skuValue = SkuValue.builder()
                         .productSku(sku)
@@ -105,6 +109,8 @@ public class SkuService {
 
         // 3. Cập nhật SkuValues (SMART UPDATE ĐỂ FIX LỖI DUPLICATE KEY)
         if (request.getAttributeValueIds() != null) {
+            validateUniqueIntegerIds(request.getAttributeValueIds());
+
             // Gom danh sách ID mới thành Set để query cho nhanh
             Set<Integer> newAttrValueIds = new HashSet<>(request.getAttributeValueIds());
 
@@ -119,6 +125,8 @@ public class SkuService {
             // C. Tải các AttributeValue từ DB lên để chuẩn bị Add
             Map<Integer, AttributeValue> attributeValueMap = attributeValueRepository.findAllById(newAttrValueIds)
                     .stream().collect(Collectors.toMap(AttributeValue::getId, av -> av));
+            validateAllAttributeValuesExist(request.getAttributeValueIds(), new ArrayList<>(attributeValueMap.values()));
+            validateOneValuePerAttribute(new ArrayList<>(attributeValueMap.values()));
 
             // D. THÊM MỚI những thuộc tính chưa có
             for (Integer newId : newAttrValueIds) {
@@ -211,5 +219,30 @@ public class SkuService {
                 .images(images)
                 .attributeValues(attributeValues)
                 .build();
+    }
+
+    private void validateUniqueIntegerIds(List<Integer> ids) {
+        if (ids.stream().anyMatch(Objects::isNull)) {
+            throw new WebErrorConfig(ErrorCode.INVALID_ATTRIBUTE_VALUE);
+        }
+
+        if (new HashSet<>(ids).size() != ids.size()) {
+            throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_ID_IN_REQUEST);
+        }
+    }
+
+    private void validateAllAttributeValuesExist(List<Integer> requestedIds, List<AttributeValue> attrValues) {
+        if (attrValues.size() != new HashSet<>(requestedIds).size()) {
+            throw new WebErrorConfig(ErrorCode.ATTRIBUTE_VALUE_NOT_FOUND);
+        }
+    }
+
+    private void validateOneValuePerAttribute(List<AttributeValue> attrValues) {
+        Set<Integer> attributeIds = new HashSet<>();
+        for (AttributeValue attrValue : attrValues) {
+            if (!attributeIds.add(attrValue.getAttribute().getId())) {
+                throw new WebErrorConfig(ErrorCode.DUPLICATE_ATTRIBUTE_VALUE_IN_SPECS);
+            }
+        }
     }
 }

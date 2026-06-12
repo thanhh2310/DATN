@@ -4,6 +4,7 @@ import com.example.demo.dto.request.CategoryAttributeRequest;
 import com.example.demo.dto.response.ApiResponse;
 import com.example.demo.dto.response.CategoryAttributeResponse;
 import com.example.demo.service.CategoryAttributeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,7 +22,7 @@ public class CategoryAttributeController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CategoryAttributeResponse> assignAttribute(
             @PathVariable Integer categoryId,
-            @RequestBody CategoryAttributeRequest request) {
+            @Valid @RequestBody CategoryAttributeRequest request) {
         request.setCategoryId(categoryId);
 
         CategoryAttributeResponse response =
@@ -51,7 +52,7 @@ public class CategoryAttributeController {
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     public ApiResponse<CategoryAttributeResponse> update(
             @PathVariable Integer id,
-            @RequestBody CategoryAttributeRequest request) {
+            @Valid @RequestBody CategoryAttributeRequest request) {
         CategoryAttributeResponse response =
                 categoryAttributeService.updateCategoryAttributeSettings(id, request);
 
